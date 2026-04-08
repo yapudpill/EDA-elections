@@ -1,0 +1,14 @@
+# our stuff
+.vscode
+DATA
+_outdir
+
+# rstudio stuff
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# quarto stuff
+/.quarto/
+**/*.quarto_ipynb
