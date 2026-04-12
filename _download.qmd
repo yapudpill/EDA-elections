@@ -1,0 +1,53 @@
+```{r}
+#| label: libraries
+
+library(glue)
+library(fs)
+
+```
+
+```{r}
+#| label: download-functions
+
+paris_api_export <- "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/{name}/exports/{format}"
+paris_api_attachement <- "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/{name}/attachments/{att}"
+
+dl_parquet <- function(dataset, filename) {
+  p <- path("DATA", filename, ext = "parquet")
+  if (!file_exists(p)) {
+    message(glue("Downloading {filename}"))
+    download.file(glue(paris_api_export, name = dataset, format = "parquet"), p)
+  }
+}
+
+dl_excel <- function() {
+  # TODO
+}
+
+```
+
+
+```{r}
+#| label: download
+
+if (!dir_exists("DATA")) {
+  message(glue("Creating directory DATA in {getwd()}"))
+  dir_create("DATA")
+}
+
+parquets <- c(
+  pres_2007_1 = "elections-presidentielles-2007-1ertour",
+  pres_2007_2 = "elections-presidentielles-2007-2emetour",
+  pres_2017_1 = "elections-presidentielles-2017-1ertour",
+  pres_2017_2 = "elections-presidentielles-2017-2emetour",
+  pres_2022_1 = "elections-presidentielles2022-1ertour",
+  pres_2022_2 = "elections-presidentielles-2022-2emetour",
+  euro_2014 = "elections-europeennes-2014",
+  euro_2024 = "elections-europeennes-2024"
+)
+
+for (filename in names(parquets)) {
+  dl_parquet(parquets[[filename]], filename)
+}
+
+```
