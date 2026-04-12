@@ -1,6 +1,7 @@
 ```{r}
 #| label: libraries
 
+library(tidyverse)
 library(glue)
 library(fs)
 
@@ -9,19 +10,37 @@ library(fs)
 ```{r}
 #| label: download-functions
 
-paris_api_export <- "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/{name}/exports/{format}"
-paris_api_attachement <- "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/{name}/attachments/{att}"
+paris_api_prefix <- "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/{dataset}/"
+paris_api_export <- paste0(paris_api_prefix, "exports/{format}")
+paris_api_attachement <- paste0(paris_api_prefix, "attachments/{att}")
 
-dl_parquet <- function(dataset, filename) {
-  p <- path("DATA", filename, ext = "parquet")
-  if (!file_exists(p)) {
-    message(glue("Downloading {filename}"))
-    download.file(glue(paris_api_export, name = dataset, format = "parquet"), p)
-  }
+dl_parquet <- function(df) {
+  df |>
+  mutate(path = fs::path("DATA", filename, ext = "parquet")) |>
+  pwalk(\(dataset, filename, path) {
+    if (!file_exists(path)) {
+      message("Downloading ", filename)
+      download.file(glue(paris_api_export, dataset = dataset, format = "parquet"), path)
+    }
+  })
 }
 
-dl_excel <- function() {
-  # TODO
+dl_excel <- function(df) {
+  df |>
+  unnest(range) |>
+  rowwise() |>
+  mutate(
+    attachement = glue(attachement, i = range),
+    filename = glue(filename, i = range),
+    path = fs::path("DATA", filename, ext = "xlsx"),
+  ) |>
+  select(-range) |>
+  pwalk(\(dataset, attachement, filename, path) {
+    if (!file_exists(path)) {
+      message("Downloading ", filename)
+      download.file(glue(paris_api_attachement, dataset = dataset, att = attachement), path)
+    }
+  })
 }
 
 ```
@@ -31,23 +50,59 @@ dl_excel <- function() {
 #| label: download
 
 if (!dir_exists("DATA")) {
-  message(glue("Creating directory DATA in {getwd()}"))
+  message("Creating directory DATA in ", getwd())
   dir_create("DATA")
 }
 
-parquets <- c(
-  pres_2007_1 = "elections-presidentielles-2007-1ertour",
-  pres_2007_2 = "elections-presidentielles-2007-2emetour",
-  pres_2017_1 = "elections-presidentielles-2017-1ertour",
-  pres_2017_2 = "elections-presidentielles-2017-2emetour",
-  pres_2022_1 = "elections-presidentielles2022-1ertour",
-  pres_2022_2 = "elections-presidentielles-2022-2emetour",
-  euro_2014 = "elections-europeennes-2014",
-  euro_2024 = "elections-europeennes-2024"
+parquets <- tribble(
+  ~dataset,                                  ~filename,
+  "elections-presidentielles-2007-1ertour",  "pres_2007_1",
+  "elections-presidentielles-2007-2emetour", "pres_2007_2",
+  "elections-presidentielles-2017-1ertour",  "pres_2017_1",
+  "elections-presidentielles-2017-2emetour", "pres_2017_2",
+  "elections-presidentielles2022-1ertour",   "pres_2022_1",
+  "elections-presidentielles-2022-2emetour", "pres_2022_2",
+  "elections-europeennes-2014",              "euro_2014",
+  "elections-europeennes-2024",              "euro_2024",
 )
+dl_parquet(parquets)
 
-for (filename in names(parquets)) {
-  dl_parquet(parquets[[filename]], filename)
-}
+pad2 <- function(i) str_pad(i, 2, pad='0')
+
+excels <- tribble(
+  ~dataset, ~attachement,
+  ~filename, ~range,
+
+  "elections-legislatives-2007-1ertour", "ddct_berp_legislatives_2007_tour1_circ_{pad2(i)}_20070610_xlsx",
+  "legi_2007_1_{i}", 1:21,
+  "elections-legislatives-2007-2emetour0","ddct_berp_legislatives_2007_tour2_circ_{pad2(i)}_20070617_xls",
+  "legi_2007_2_{i}", c(1:2, 5:13, 17:21),
+
+  "elections-legislatives-2017-1ertour", "ddct_berp_legislatives_2017_tour1_circ_{pad2(i)}_20170611_xlsx",
+  "legi_2017_1_{i}", 1:18,
+  "elections-legislatives-2017-2emetour", "ddct_berp_legislatives_2017_tour2_circ_{pad2(i)}_20170618_xlsx",
+  "legi_2017_2_{i}", 2:18,
+
+  "elections-legislatives-2022-1ertour", "ddct_berp_legislatives_2022_tour1_circ_{pad2(i)}_20220612_xlsx",
+  "legi_2022_1_{i}", 1:18,
+  "elections-legislatives-2022-2emetour", "ddct_berp_legislatives_2022_tour2_circ_{pad2(i)}_20220619_xlsx",
+  "legi_2022_2_{i}", c(1:5, 7:15, 18),
+
+  "elections-legislatives-2024-1ertour", "ddct_berp_legislatives_2024_tour1_circ_{pad2(i)}_20240630_xlsx",
+  "legi_2024_1_{i}", 1:18,
+  "elections-legislatives-2024-2emetour", "ddct_berp_legislatives_2024_tour2_circ_{pad2(i)}_20240707_xlsx",
+  "legi_2024_2_{i}", c(1:4, 11:15),
+
+  "elections-municipales-2008-1ertour", "ddct_berp_municipales_2008_tour1_ardt_{pad2(i)}_20080310_xls",
+  "muni_2008_1_{i}", 1:20,
+  "elections-municipales-2008-2emetour", "ddct_berp_municipales_2008_tour2_ardt_{pad2(i)}_20080317_xlsx",
+  "muni_2008_2_{i}", c(1:2, 4:10, 12:15, 17:18, 20),
+
+  "elections-municipales-2020-1ertour", "ddct_berp_municipales_2020_tour1_ardt_{pad2(i)}_20200315_xls",
+  "muni_2020_1_{i}", 1:20,
+  "elections-municipales-2020-2emetour", "ddct_berp_municipales_2020_tour2_ardt_{pad2(i)}_20200628_xls",
+  "muni_2020_2_{i}", c(1:6, 8:20),
+)
+dl_excel(excels)
 
 ```
