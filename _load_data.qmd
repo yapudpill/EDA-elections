@@ -1,0 +1,37 @@
+{{< include _download.qmd >}}
+
+```{r}
+#| label: load-libraries
+
+library(arrow)
+library(readxl)
+
+```
+
+```{r}
+#| label: load-functions
+
+load_parquet <- function(filename, path) {
+  assign(filename, read_parquet(path), .GlobalEnv)
+}
+
+load_excel <- function(dataset, filenames, paths) {
+  l <- pmap(list(filenames, paths), \(file, p) read_excel(p))
+  assign(dataset, l, .GlobalEnv)
+}
+
+```
+
+```{r}
+#| label: load
+
+pwalk(select(parquets, -dataset), load_parquet)
+
+# ATTENTION: ÇA MARCHE PAS
+# excels |>
+#   select(-attachement) |>
+#   group_by(dataset) |>
+#   summarize(across(everything(), list)) |>
+#   pwalk(load_excel)
+
+```
