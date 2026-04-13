@@ -14,33 +14,18 @@ paris_api_prefix <- "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets
 paris_api_export <- paste0(paris_api_prefix, "exports/{format}")
 paris_api_attachement <- paste0(paris_api_prefix, "attachments/{att}")
 
-dl_parquet <- function(df) {
-  df |>
-  mutate(path = fs::path("DATA", filename, ext = "parquet")) |>
-  pwalk(\(dataset, filename, path) {
-    if (!file_exists(path)) {
-      message("Downloading ", filename)
-      download.file(glue(paris_api_export, dataset = dataset, format = "parquet"), path)
-    }
-  })
+dl_parquet <- function(dataset, filename, path) {
+  if (!file_exists(path)) {
+    message("Downloading ", filename)
+    download.file(glue(paris_api_export, dataset = dataset, format = "parquet"), path, mode = "wb")
+  }
 }
 
-dl_excel <- function(df) {
-  df |>
-  unnest(range) |>
-  rowwise() |>
-  mutate(
-    attachement = glue(attachement, i = range),
-    filename = glue(filename, i = range),
-    path = fs::path("DATA", filename, ext = "xlsx"),
-  ) |>
-  select(-range) |>
-  pwalk(\(dataset, attachement, filename, path) {
-    if (!file_exists(path)) {
-      message("Downloading ", filename)
-      download.file(glue(paris_api_attachement, dataset = dataset, att = attachement), path)
-    }
-  })
+dl_excel <- function(dataset, attachement, filename, path) {
+  if (!file_exists(path)) {
+    message("Downloading ", filename)
+    download.file(glue(paris_api_attachement, dataset = dataset, att = attachement), path, mode = "wb")
+  }
 }
 
 ```
@@ -64,8 +49,10 @@ parquets <- tribble(
   "elections-presidentielles-2022-2emetour", "pres_2022_2",
   "elections-europeennes-2014",              "euro_2014",
   "elections-europeennes-2024",              "euro_2024",
-)
-dl_parquet(parquets)
+  ) |>
+  mutate(path = fs::path("DATA", filename, ext = "parquet"))
+
+pwalk(parquets, dl_parquet)
 
 pad2 <- function(i) str_pad(i, 2, pad='0')
 
@@ -102,7 +89,16 @@ excels <- tribble(
   "muni_2020_1_{i}", 1:20,
   "elections-municipales-2020-2emetour", "ddct_berp_municipales_2020_tour2_ardt_{pad2(i)}_20200628_xls",
   "muni_2020_2_{i}", c(1:6, 8:20),
-)
-dl_excel(excels)
+  ) |>
+  unnest(range) |>
+  rowwise() |>
+  mutate(
+    .keep = "unused",
+    attachement = glue(attachement, i = range),
+    filename = glue(filename, i = range),
+    path = fs::path("DATA", filename, ext = "xlsx"),
+  )
+
+pwalk(excels, dl_excel)
 
 ```
