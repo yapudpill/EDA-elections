@@ -1,0 +1,8 @@
+```{r}
+elections$data |>
+  map_dfr(\(x) select(x, nb_votant, nb_procu, scrutin)) |>
+  filter(nb_votant < 20000) |>
+  mutate(scrutin = if_else(scrutin == "Législative", "Législatives", scrutin)) |>
+  ggplot(aes(x = nb_votant, y = nb_procu, color = scrutin)) +
+  geom_point(alpha = .2)
+```
