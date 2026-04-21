@@ -11,13 +11,43 @@ library(readxl)
 ```{r}
 #| label: load-functions
 
-load_parquet <- function(filename, path) {
-  assign(filename, read_parquet(path), .GlobalEnv)
+unused_cols <- c(
+  "sec_bv", "objectid", "created_user", "created_date", "last_edited_user",
+  "last_edited_date", "st_area_shape", "st_perimeter_shape"
+)
+
+# Name standardization for the two datasets that are different from the others
+cols_mapping <- c(
+  id_bv = "id_bvote",
+  type_election = "scrutin",
+  numero_tour = "tour",
+  date_tour = "date",
+  circ_bv = "num_circ",
+  quartier_bv = "num_quartier",
+  arr_bv = "num_arrond",
+  nb_procuration = "nb_procu",
+  nb_inscrit = "nb_inscr",
+  inscrits = "nb_inscr",
+  nb_emargement = "nb_emarg",
+  nb_vote_blanc = "nb_blanc",
+  nb_bl = "nb_blanc",
+  nb_vote_nul = "nb_nul",
+  nb_exprime = "nb_exprim"
+)
+
+# Read a parque file and standardize columns
+load_parquet <- function(path) {
+  read_parquet(path) |>
+    rename_with(\(old) coalesce(cols_mapping[old], old)) |>
+    select(!any_of(unused_cols))
 }
 
-load_excel <- function(dataset, filenames, paths) {
-  l <- pmap(list(filenames, paths), \(file, p) read_excel(p))
-  assign(dataset, l, .GlobalEnv)
+# Read an excel file and standardize columns
+load_excel <- function(path) {
+  read_excel(path) |>
+    rename_with(str_to_lower) |>
+    rename_with(\(old) coalesce(cols_mapping[old], old)) |>
+    select(!any_of(unused_cols))
 }
 
 ```
@@ -25,13 +55,17 @@ load_excel <- function(dataset, filenames, paths) {
 ```{r}
 #| label: load
 
-pwalk(select(parquets, -dataset), load_parquet)
+pres_euro <- mutate(pres_euro, data = map(path, load_parquet))
 
-# ATTENTION: ÇA MARCHE PAS
-# excels |>
-#   select(-attachement) |>
-#   group_by(dataset) |>
-#   summarize(across(everything(), list)) |>
-#   pwalk(load_excel)
+# one of the excel file is ill-formatted so this will produce a warning but we can ignore it
+legi_muni <- mutate(legi_muni, data = map(path, load_excel)) |> suppressWarnings()
+
+# group all the election in a data frame and clear variables
+elections <- bind_rows(
+  pres_euro |> select(!c(dataset, path)),
+  legi_muni |> select(!c(dataset, path, attachement))
+) |> relocate(constituency, .before = data)
+
+rm(unused_cols, cols_mapping, load_parquet, load_excel, pres_euro, legi_muni)
 
 ```

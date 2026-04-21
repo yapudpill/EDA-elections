@@ -2,7 +2,6 @@
 #| label: download-libraries
 
 library(tidyverse)
-library(glue)
 library(fs)
 
 ```
@@ -17,14 +16,14 @@ api_attachement <- str_c(api_prefix, "attachments/{attachement}")
 dl_parquet <- function(dataset, path) {
   if (!file_exists(path)) {
     message("Downloading ", path_file(path))
-    download.file(glue(api_export, format = "parquet"), path, mode = "wb")
+    download.file(str_glue(api_export, format = "parquet"), path, mode = "wb")
   }
 }
 
 dl_excel <- function(dataset, attachement, path) {
   if (!file_exists(path)) {
     message("Downloading ", path_file(path))
-    download.file(glue(api_attachement), path, mode = "wb")
+    download.file(str_glue(api_attachement), path, mode = "wb")
   }
 }
 
@@ -103,8 +102,8 @@ legi_muni <- to_dl |>
   unnest(constituency) |>
   rowwise() |>
   mutate(
-    attachement = glue(attachement, i = constituency),
-    path = glue(path, i = constituency) |> as.character()
+    attachement = str_glue(attachement, i = constituency),
+    path = str_glue(path, i = constituency) |> as.character()
   ) |>
   ungroup()
 
@@ -117,5 +116,6 @@ pwalk(select(legi_muni, dataset, attachement, path), dl_excel)
 
 # clear all variables except elections
 rm(api_attachement, api_export, api_prefix, dl_excel, dl_parquet, to_dl, parsed, pad2)
+detach(package:fs)
 
 ```
