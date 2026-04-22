@@ -35,20 +35,33 @@ cols_mapping <- c(
   nb_exprime = "nb_exprim"
 )
 
-# Read a parque file and standardize columns
-load_parquet <- function(path) {
-  read_parquet(path) |>
-    rename_with(\(old) coalesce(cols_mapping[old], old)) |>
-    select(!any_of(unused_cols))
-}
-
-# Read an excel file and standardize columns
-load_excel <- function(path) {
-  read_excel(path) |>
+# columns name and type standardization
+standardize <- function(df) {
+  df <- df |>
     rename_with(str_to_lower) |>
     rename_with(\(old) coalesce(cols_mapping[old], old)) |>
     select(!any_of(unused_cols))
+
+  if (inherits(df$annee, "Date")) df <- mutate(df, annee = year(annee))
+
+  if (inherits(df$date, "POSIXct")) df <- mutate(df, date = as_date(date))
+  else if (is.character(df$date)) df <- mutate(df, date = dmy(date))
+
+  df <- df |> mutate(
+    across(
+      c(annee, num_circ, num_quartier, num_arrond),
+      \(col) if (is.character(col)) as.numeric(col) else col
+    )
+  )
+
+  df
 }
+
+# Read a parque file and standardize columns
+load_parquet <- function(path) standardize(read_parquet(path))
+
+# Read an excel file and standardize columns
+load_excel <- function(path) standardize(read_excel(path))
 
 ```
 
@@ -56,6 +69,16 @@ load_excel <- function(path) {
 #| label: load
 
 pres_euro <- mutate(pres_euro, data = map(path, load_parquet))
+
+# the 2014 european elections have an absurd row with only NAs and 20000+ voters
+fixed <- pres_euro |>
+  filter(type == "europeennes", year == 2014) |>
+  pluck("data", 1) |>
+  filter(nb_votant < 20000)
+pres_euro <- pres_euro |> rows_update(
+  tibble(type = "europeennes", year = 2014, data = list(fixed)),
+  by = c("type", "year")
+)
 
 # one of the excel file is ill-formatted so this will produce a warning but we can ignore it
 legi_muni <- mutate(legi_muni, data = map(path, load_excel)) |> suppressWarnings()
@@ -66,6 +89,6 @@ elections <- bind_rows(
   legi_muni |> select(!c(dataset, path, attachement))
 ) |> relocate(constituency, .before = data)
 
-rm(unused_cols, cols_mapping, load_parquet, load_excel, pres_euro, legi_muni)
+rm(unused_cols, cols_mapping, standardize, load_parquet, load_excel, fixed, pres_euro, legi_muni)
 
 ```
