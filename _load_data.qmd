@@ -89,6 +89,11 @@ elections <- bind_rows(
   legi_muni |> select(!c(dataset, path, attachement))
 ) |> relocate(constituency, .before = data)
 
+```
+
+```{r}
+#| label: load-clean
+
 rm(unused_cols, cols_mapping, standardize, load_parquet, load_excel, fixed, pres_euro, legi_muni)
 
 ```

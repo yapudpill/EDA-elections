@@ -1,11 +1,77 @@
+---
+format: html
+---
+
 {{< include _load_data.qmd >}}
+
+```{r}
+#| label: report_libraries
+
+library(ggfortify)
+
+```
+
+```{r}
+#| label: pca
+
+candidates <- function(df) {
+  n <- names(df)
+  i1 <- detect_index(n, \(x) x == "nb_exprim") + 1
+  i2 <- detect_index(n, \(x) x == "geo_shape")
+  i2 <- if (i2 == 0) length(n) else i2 - 1
+  df |> select(all_of(i1:i2)) |> select(where(\(col) !all(col == 0)))
+}
+
+top_n <- function(df, n) {
+  sums <- map_int(df, sum) |> sort(decreasing = TRUE)
+  top <- names(sums[1:n]) |> discard(is.na)
+  select(df, all_of(top))
+}
+
+pcomps <- elections |>
+  mutate(
+    pco = data |> map(\(df) prcomp(candidates(df) |> top_n(5), center = TRUE, scale = TRUE))
+  )
+
+pcomps |>
+filter(type == "presidentielles", round == 1) |>
+pwalk(function(type, year, round, pco, ...) {
+  screeplot(pco, main = str_glue("Élections {type} {year}, tour {round}"))
+})
+
+pcomps |>
+filter(type == "presidentielles", round == 1) |>
+pwalk(function(type, year, round, pco, ...) {
+  print(
+    autoplot(pco, loadings = TRUE, loadings.label = TRUE, loadings.color = "blue") +
+    coord_fixed() +
+    labs(title = str_glue("Élections {type} {year}, tour {round}"))
+  )
+})
+
+```
 
 ```{r}
 #| label: test-tmp
 
-elections$data |>
-  map_dfr(\(x) select(x, nb_votant, nb_procu, scrutin)) |>
-  mutate(scrutin = if_else(scrutin == "Législative", "Législatives", scrutin)) |>
-  ggplot(aes(x = nb_votant, y = nb_procu, color = scrutin)) +
-  geom_point(alpha = .2, size = .5)
+#elections$data |>
+#  map_dfr(\(x) select(x, nb_votant, nb_procu, scrutin)) |>
+#  mutate(scrutin = if_else(scrutin == "Législative", "Législatives", scrutin)) |>
+#  ggplot(aes(x = nb_votant, y = nb_procu, color = scrutin)) +
+#  geom_point(alpha = .2, size = .5)
+```
+
+
+
+```{r}
+#elections |> pluck("data", 5) -> tmp
+#candidates(tmp) -> cand
+#prcomp(cand, center = TRUE, scale = TRUE) -> pc
+#
+#autoplot(pc, loadings = TRUE, loadings.label = TRUE, x = 1, y = 2)
+#autoplot(pc, loadings = TRUE, loadings.label = TRUE, x = 1, y = 3)
+#autoplot(pc, loadings = TRUE, loadings.label = TRUE, x = 2, y = 3)
+#
+#autoplot(pc, loadings = TRUE, loadings.label = TRUE, loadings.color = "blue", x = 1, y = 3) + coord_fixed()
+
 ```
