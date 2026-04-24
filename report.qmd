@@ -60,7 +60,20 @@ pwalk(function(type, year, round, pco, ...) {
 #  geom_point(alpha = .2, size = .5)
 ```
 
+### The Evolution of the Parisian Presidential Landscape (2007-2017-2022)
 
+#### 2007
+* **PC1 (The Classic Left/Right Divide):** The horizontal axis perfectly and diametrically opposes *Nicolas Sarkozy* (on the right side of the graph) to *Ségolène Royal* and *Olivier Besancenot* (on the left side). This is the historical left vs. right fracture of the 5th Republic.
+* **PC2 (The Center vs. The Extremes):** The vertical axis is equally fascinating. It clearly isolates *François Bayrou* (the centrist) against the extreme of the political spectrum at the time, *Jean-Marie Le Pen*.
+
+#### 2017
+* **The Left/Right Divide Remains:** The horizontal axis still captures the traditional opposition between the Right (*François Fillon*) and the Left (*Jean-Luc Mélenchon* / *Benoît Hamon*).
+* **The Explosion of PC2:** The vertical axis becomes massive and highlights a brand new fracture. It directly opposes *Emmanuel Macron* (pointing straight down) to *Marine Le Pen* (pointing straight up). This visually translates the emergence of a new "Progressivism/Globalism" vs. "Nationalism/Populism" divide that disrupted the old system.
+
+#### 2022
+* **The Fusion of the Right:** Look at *Valérie Pécresse* and *Éric Zemmour*. Their arrows are almost perfectly superimposed. Mathematically, this means that in Paris, the traditional conservative Right and the Far-Right appealed to the exact same sociology and neighborhoods (likely the affluent Western districts).
+* **The Left Bloc:** Sitting on the complete opposite side of the *Pécresse*/*Zemmour* cluster is *Jean-Luc Mélenchon*, dominating his own half of the graph alone (representing the working-class/diverse Eastern districts).
+* **The Central/Ecologist Bloc:** *Emmanuel Macron* and *Yannick Jadot*+ (the Green candidate) both point downwards in a similar general direction. In Paris, the Macron vote and the Ecologist vote in the first round share very similar sociological roots (the urban, upper-middle class).
 
 ```{r}
 #elections |> pluck("data", 5) -> tmp
