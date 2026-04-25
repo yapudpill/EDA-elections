@@ -1,5 +1,5 @@
 ---
-title: Paris under the prism of SVD
+title: Elections in Paris under the prism of SVD
 format: html
 ---
 
@@ -11,14 +11,45 @@ format: html
 library(FactoMineR)
 library(factoextra)
 library(patchwork)
+library(gt)
 
 ```
 
 # Our Dataset
 
-TODO
+For this project, we will analyse the electoral results in Paris since 2007 (the year the official open data archives begin). Since a grand total of 16 elections happened since 2007, we only selected a subset that we found interesting:
+
+
+| Election type| Years                  |
+|--------------|------------------------|
+| Presidential | 2007, 2017, 2022       |
+| European     | 2014, 2024             |
+| Legislative  | 2007, 2017, 2022, 2024 |
+| Municipal    | 2008, 2020             |
+
+For each of these election, we have a table where each individual is a polling station. The first 15 columns are informations about the election and the station (its location, number of registered voter, number of cast ballots...). Following this, there is one column per candidate which indicate the number of votes they received in each polling station.
+
+As an example, here is a sample of what we can find about the first round of the 2017 presidential election:
+
+```{r}
+#| label: sample
+
+elections |>
+  filter(type == "presidentielles", year == 2017, round == 1) |>
+  pluck("data", 1) |>
+  select(!c(geo_shape, geo_point_2d)) |>
+  rename_with(\(name) name |> str_replace_all("_", " ") |> str_to_title()) |>
+  sample_n(5) |>
+  gt() |>
+  tab_header(title = "2017 Presidential elections, 1st round")
+
+```
+
+
 
 # Using Principal Component Analysis
+
+TODO
 
 ```{r}
 #| label: pca
@@ -106,7 +137,7 @@ pwalk(function(type, year, round, pco, ...) {
 })
 ```
 
-### European Elections in Paris (2014 vs 2024)
+## European Elections in Paris (2014 vs 2024)
 
 #### 2014
 * **PC1 (The Left/Right Spectrum):** The primary horizontal axis (explaining 55.5% of the variance) cleanly separates the traditional political families. On the left side of the graph, we find the conservative Right (*Alain Lamassoure*). On the right side, a scattered Left bloc (*Patrick Le Hyaric*, *Pascal Durand*, *Pervenche Berès*).
