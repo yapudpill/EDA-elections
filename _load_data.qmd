@@ -41,11 +41,13 @@ standardize <- function(df) {
     rename_with(str_to_lower) |>
     rename_with(\(old) coalesce(cols_mapping[old], old)) |>
     select(!any_of(unused_cols))
-  
+
   if ("nb_blanc" %in% names(df)) {
     df <- df |>
-      mutate(nb_bl_nul = nb_blanc + nb_nul, .keep = "unused")
+      mutate(nb_bl_nul = nb_blanc + nb_nul, .keep = "unused") |>
+      relocate(nb_bl_nul, .before = nb_exprim)
   }
+
   if (inherits(df$annee, "Date")) df <- mutate(df, annee = year(annee))
 
   if (inherits(df$date, "POSIXct")) df <- mutate(df, date = as_date(date))

@@ -5,9 +5,10 @@ format: html
 {{< include _load_data.qmd >}}
 
 ```{r}
-#| label: report_libraries
+#| label: report-libraries
 
-library(ggfortify)
+library(FactoMineR)
+library(factoextra)
 
 ```
 
@@ -15,10 +16,8 @@ library(ggfortify)
 #| label: pca
 candidates <- function(df) {
   n <- names(df)
-  i1 <- detect_index(n, \(x) x == "nb_exprim") + 1
-  i2 <- detect_index(n, \(x) x == "geo_shape")
-  i2 <- if (i2 == 0) length(n) else i2 - 1
-  df |> select(all_of(i1:i2)) |> select(where(\(col) !all(col == 0)))
+  i2 <- length(n) - if ("geo_shape" %in% n) 2 else 0
+  df |> select(all_of(16:i2)) |> select(where(\(col) !all(col == 0)))
 }
 
 top_n <- function(df, n) {
@@ -29,20 +28,20 @@ top_n <- function(df, n) {
 
 pcomps <- elections |>
   mutate(
-    pco = data |> map(\(df) prcomp(candidates(df) |> top_n(6), center = TRUE, scale = TRUE ))
+    pco = map(data, \(df) PCA(candidates(df) |> top_n(6), scale.unit = TRUE, graph = FALSE))
   )
 
 pcomps |>
 filter(type == "presidentielles", round == 1) |>
 pwalk(function(type, year, round, pco, ...) {
-  screeplot(pco, main = str_glue("Élections {type} {year}, tour {round}"))
+  print(fviz_screeplot(pco) + labs(title = str_glue("Élections {type} {year}, tour {round}")))
 })
 
 pcomps |>
 filter(type == "presidentielles", round == 1) |>
 pwalk(function(type, year, round, pco, ...) {
   print(
-    autoplot(pco, loadings = TRUE, loadings.label = TRUE, loadings.color = "blue") +
+    fviz_pca_biplot(pco, label = "var", col.ind = "#BBBBBB", col.var="#0257df") +
     coord_fixed() +
     labs(title = str_glue("Élections {type} {year}, tour {round}"))
   )
