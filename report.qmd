@@ -1,4 +1,5 @@
 ---
+title: Paris under the prism of SVD
 format: html
 ---
 
@@ -9,11 +10,19 @@ format: html
 
 library(FactoMineR)
 library(factoextra)
+library(patchwork)
 
 ```
 
+# Our Dataset
+
+TODO
+
+# Using Principal Component Analysis
+
 ```{r}
 #| label: pca
+
 candidates <- function(df) {
   n <- names(df)
   i2 <- length(n) - if ("geo_shape" %in% n) 2 else 0
@@ -31,35 +40,40 @@ pcomps <- elections |>
     pco = map(data, \(df) prcomp(candidates(df) |> top_n(6), center = TRUE, scale. = TRUE))
   )
 
-pcomps |>
-filter(type == "presidentielles", round == 1) |>
-pwalk(function(type, year, round, pco, ...) {
-  print(fviz_screeplot(pco) + labs(title = str_glue("Élections {type} {year}, tour {round}")))
-})
-
-pcomps |>
-filter(type == "presidentielles", round == 1) |>
-pwalk(function(type, year, round, pco, ...) {
-  print(
-    fviz_pca_biplot(pco, label = "var", col.ind = "#BBBBBB", col.var="#0257df") +
-    coord_fixed() +
-    labs(title = str_glue("Élections {type} {year}, tour {round}"))
-  )
-})
-
 ```
+
+## The Evolution of the Parisian Presidential Landscape (2007-2017-2022)
 
 ```{r}
-#| label: test-tmp
+#| label: pca-pres
 
-#elections$data |>
-#  map_dfr(\(x) select(x, nb_votant, nb_procu, scrutin)) |>
-#  mutate(scrutin = if_else(scrutin == "Législative", "Législatives", scrutin)) |>
-#  ggplot(aes(x = nb_votant, y = nb_procu, color = scrutin)) +
-#  geom_point(alpha = .2, size = .5)
+graphs <- pcomps |>
+  filter(type == "presidentielles", round == 1) |>
+  mutate(
+    title = str_glue("{str_to_title(str_sub(type, end = 4))}. {year}, tour {round}"),
+    screeplot = map(pco, partial(fviz_screeplot, addlabels = TRUE, main = title)),
+    biplot = map(pco, partial(fviz_pca_biplot, label = "var", col.ind = "#BBBBBB", col.var="#0032b0", repel = TRUE, title = title))
+  )
+
 ```
 
-### The Evolution of the Parisian Presidential Landscape (2007-2017-2022)
+Let's first have a look at the screeplots of our PCA.
+
+```{r}
+#| label: pca-pres-screeplot
+
+wrap_plots(graphs$screeplot, axes = "collect")
+
+```
+
+In every PCA, the first two principal axes contain at least 75% of the total variance. The elbow of the plot is not as pronounced as we usually want in a PCA but we can still neglect the 25% of variance remaining and look at the biplots:
+
+```{r}
+#| label: pca-pres-biplot
+
+walk(graphs$biplot, \(x) print(x + coord_fixed()))
+
+```
 
 #### 2007
 * **PC1 (The Classic Left/Right Divide):** The horizontal axis perfectly and diametrically opposes *Nicolas Sarkozy* (on the right side of the graph) to *Ségolène Royal* and *Olivier Besancenot* (on the left side). This is the historical left vs. right fracture of the 5th Republic.
@@ -73,20 +87,6 @@ pwalk(function(type, year, round, pco, ...) {
 * **The Fusion of the Right:** Look at *Valérie Pécresse* and *Éric Zemmour*. Their arrows are almost perfectly superimposed. Mathematically, this means that in Paris, the traditional conservative Right and the Far-Right appealed to the exact same sociology and neighborhoods (likely the affluent Western districts).
 * **The Left Bloc:** Sitting on the complete opposite side of the *Pécresse*/*Zemmour* cluster is *Jean-Luc Mélenchon*, dominating his own half of the graph alone (representing the working-class/diverse Eastern districts).
 * **The Central/Ecologist Bloc:** *Emmanuel Macron* and *Yannick Jadot* both point downwards in a similar general direction. In Paris, the Macron vote and the Ecologist vote in the first round share very similar sociological roots (the urban, upper-middle class).
-
-
-```{r}
-#elections |> pluck("data", 5) -> tmp
-#candidates(tmp) -> cand
-#prcomp(cand, center = TRUE, scale = TRUE) -> pc
-#
-#autoplot(pc, loadings = TRUE, loadings.label = TRUE, x = 1, y = 2)
-#autoplot(pc, loadings = TRUE, loadings.label = TRUE, x = 1, y = 3)
-#autoplot(pc, loadings = TRUE, loadings.label = TRUE, x = 2, y = 3)
-#
-#autoplot(pc, loadings = TRUE, loadings.label = TRUE, loadings.color = "blue", x = 1, y = 3) + coord_fixed()
-
-```
 
 ```{r}
 pcomps |>
@@ -117,4 +117,3 @@ pwalk(function(type, year, round, pco, ...) {
 * **The Left/Right Shift:** The graph's orientation has flipped (which is mathematically normal in PCA), but the divide is starker. The Left bloc (*Aubry*, *Toussaint*, *Glucksmann*) is on the left side, while the Right/Center bloc (*Bellamy*, *Hayer*, *Bardella*) is on the right side.
 * **The "Glucksmann/Toussaint" Fusion:**  Look at *Raphaël Glucksmann* (Center-Left) and *Marie Toussaint* (Greens). Their arrows are practically glued together, pointing to the exact same sociological space (down-left). In Paris, the moderate left and the ecologist electorate became virtually indistinguishable in 2024. This is the most striking finding of this chart.
 * **A double polarization: ** We can clearly see a socio-economic axis (*Aubry* vs. *Bellamy* and *Hayer*) crossing with a cultural axis (*Glucksmann* and *Toussaint* vs. *Bardella*)
-
