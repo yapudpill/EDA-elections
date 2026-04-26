@@ -12,6 +12,7 @@ library(FactoMineR)
 library(factoextra)
 library(patchwork)
 library(gt)
+library(sf)
 
 ```
 
@@ -20,12 +21,14 @@ library(gt)
 For this project, we will analyse the electoral results in Paris since 2007 (the year the official open data archives begin). Since a grand total of 16 elections happened since 2007, we only selected a subset that we found interesting:
 
 
-| Election type| Years                  |
-|--------------|------------------------|
-| Presidential | 2007, 2017, 2022       |
-| European     | 2014, 2024             |
-| Legislative  | 2007, 2017, 2022, 2024 |
-| Municipal    | 2008, 2020             |
+| Election type | Years                  |
+|---------------|------------------------|
+| Presidential  | 2007, 2017, 2022       |
+| European      | 2014, 2024             |
+| Legislative   | 2007, 2017, 2022, 2024 |
+| Municipal     | 2008, 2020             |
+
+We selected these elections because they cover the whole 2007-2022 period which will allow us to observe if any changes appear with time. We selected every elections from 2017 onward because the assignment requiers it to fit a linear regression explaining the 2024 parliamentary elections.
 
 For each of these election, we have a table where each individual is a polling station. The first 15 columns are informations about the election and the station (its location, number of registered voter, number of cast ballots...). Following this, there is one column per candidate which indicate the number of votes they received in each polling station.
 
@@ -34,22 +37,26 @@ As an example, here is a sample of what we can find about the first round of the
 ```{r}
 #| label: sample
 
+format_names <- function(name) name |> str_replace_all("_", " ") |> str_to_title()
+
 elections |>
   filter(type == "presidentielles", year == 2017, round == 1) |>
   pluck("data", 1) |>
   select(!c(geo_shape, geo_point_2d)) |>
-  rename_with(\(name) name |> str_replace_all("_", " ") |> str_to_title()) |>
+  rename_with(format_names) |>
   sample_n(5) |>
   gt() |>
   tab_header(title = "2017 Presidential elections, 1st round")
 
 ```
 
-
+At a glance, we notice that the candidates most liked from the Parisians were Emmanuel Macron (elected), Jean-Luc Mélenchon and François Fillon.
 
 # Using Principal Component Analysis
 
-TODO
+In this section, we will perform PCA on the columns containing the results of the candidates for multiple elections and showcase some characteristics of the Parisian political landscape.
+
+Since elections tend to have quite a lot of candidates obtaining only few votes, we focused our analysis on the 6 best scoring candidates of each election. We also ignore second rounds because having only two variables is not an interesting situation with PCA.
 
 ```{r}
 #| label: pca
@@ -68,27 +75,39 @@ top_n <- function(df, n) {
 
 pcomps <- elections |>
   mutate(
-    pco = map(data, \(df) prcomp(candidates(df) |> top_n(6), center = TRUE, scale. = TRUE))
+    pco = map(data, \(df) prcomp(candidates(df) |> top_n(6), scale. = TRUE)),
+    title = str_glue("{str_to_title(str_sub(type, end = 4))}. {year}, tour {round}")
   )
 
 ```
 
-## The Evolution of the Parisian Presidential Landscape (2007-2017-2022)
+## The Evolution of the Presidential Landscape (2007-2017-2022)
 
 ```{r}
 #| label: pca-pres
 
-graphs <- pcomps |>
-  filter(type == "presidentielles", round == 1) |>
+pcomps.pres <- filter(pcomps, type == "presidentielles", round == 1)
+
+graphs <- pcomps.pres |>
   mutate(
-    title = str_glue("{str_to_title(str_sub(type, end = 4))}. {year}, tour {round}"),
     screeplot = map(pco, partial(fviz_screeplot, addlabels = TRUE, main = title)),
-    biplot = map(pco, partial(fviz_pca_biplot, label = "var", col.ind = "#BBBBBB", col.var="#0032b0", repel = TRUE, title = title))
+    biplot = map(pco, partial(fviz_pca_var, col.var="royalblue", repel = TRUE, title = title))
   )
 
 ```
 
-Let's first have a look at the screeplots of our PCA.
+Let's start by the most well known election: the presidential election. For these elections, the top performing candidates are as follow:
+
+```{r}
+#| label: top-pres
+
+pcomps.pres |>
+  mutate(cand = map(pco, \(x) names(x$center) |> format_names())) |>
+  select(Year = year, Candidates = cand) |>
+  gt()
+```
+
+We will first check the screeplots to assert that using 2 axes on our PCA will be relevant.
 
 ```{r}
 #| label: pca-pres-screeplot
@@ -97,27 +116,58 @@ wrap_plots(graphs$screeplot, axes = "collect")
 
 ```
 
-In every PCA, the first two principal axes contain at least 75% of the total variance. The elbow of the plot is not as pronounced as we usually want in a PCA but we can still neglect the 25% of variance remaining and look at the biplots:
+In every PCA, the first two principal axes contain at least 75% of the total variance. The elbow of the plot is not as pronounced as we usually want in a PCA but we can still neglect the remaining variance and proceed to look at the correlation circles:
 
 ```{r}
 #| label: pca-pres-biplot
+#| lightbox:
+#|  group: pca-pres-biplot
 
-walk(graphs$biplot, \(x) print(x + coord_fixed()))
+walk(graphs$biplot, print)
 
 ```
 
 #### 2007
-* **PC1 (The Classic Left/Right Divide):** The horizontal axis perfectly and diametrically opposes *Nicolas Sarkozy* (on the right side of the graph) to *Ségolène Royal* and *Olivier Besancenot* (on the left side). This is the historical left vs. right fracture of the 5th Republic.
-* **PC2 (The Center vs. The Extremes):** The vertical axis is equally fascinating. It clearly isolates *François Bayrou* (the centrist) against the extreme of the political spectrum at the time, *Jean-Marie Le Pen*.
+* **The Classic Left/Right Divide:** The horizontal axis perfectly and diametrically opposes *Nicolas Sarkozy* (on the right side of the graph) to *Ségolène Royal* and *Olivier Besancenot* (on the left side). This is the historical left vs. right fracture of the 5th Republic.
+* **The Center vs. The Extremes:** The vertical axis is equally interesting. It isolates *François Bayrou* (the centrist) against the extreme of the political spectrum at the time, *Jean-Marie Le Pen*.
 
 #### 2017
 * **The Left/Right Divide Remains:** The horizontal axis still captures the traditional opposition between the Right (*François Fillon*) and the Left (*Jean-Luc Mélenchon* / *Benoît Hamon*).
-* **The Explosion of PC2:** The vertical axis becomes massive and highlights a brand new fracture. It directly opposes *Emmanuel Macron* (pointing straight down) to *Marine Le Pen* (pointing straight up). This visually translates the emergence of a new "Progressivism/Globalism" vs. "Nationalism/Populism" divide that disrupted the old system.
+* **Growing Alternatives:** The vertical axis becomes more crowded and highlights a new fracture. It directly opposes *Emmanuel Macron* (pointing down) to *Marine Le Pen* (pointing straight up). This visually translates the emergence of a new "Progressivism/Globalism" vs. "Nationalism/Populism" divide that disrupted the old system.
 
 #### 2022
-* **The Fusion of the Right:** Look at *Valérie Pécresse* and *Éric Zemmour*. Their arrows are almost perfectly superimposed. Mathematically, this means that in Paris, the traditional conservative Right and the Far-Right appealed to the exact same sociology and neighborhoods (likely the affluent Western districts).
-* **The Left Bloc:** Sitting on the complete opposite side of the *Pécresse*/*Zemmour* cluster is *Jean-Luc Mélenchon*, dominating his own half of the graph alone (representing the working-class/diverse Eastern districts).
-* **The Central/Ecologist Bloc:** *Emmanuel Macron* and *Yannick Jadot* both point downwards in a similar general direction. In Paris, the Macron vote and the Ecologist vote in the first round share very similar sociological roots (the urban, upper-middle class).
+* **A Narrowing of the Right:** *Valérie Pécresse's* and *Éric Zemmour's* arrows are almost perfectly superimposed. Mathematically, this means that in Paris, the traditional conservative Right and the Far-Right appealed to the same sociology and neighborhoods (likely the affluent Western districts).
+* **The Left Bloc:** Sitting on the opposite side of the *Pécresse*/*Zemmour* cluster is *Jean-Luc Mélenchon*, dominating his own half of the graph alone (representing the working-class/diverse Eastern districts).
+* **Macron's slide to the right:** Contrary to the previous year, *Emmanuel Macron's* arrow is leaning toward right politicians. This underlines a change in the perception of Macron's politics after his first term, it being actually more right-oriented that expected in 2017.
+
+Since most of the political dynamic seems to be happening in the first principal axis, let's represent on a map where each polling station is located on that axis.
+
+```{r}
+#| label: choropleth
+
+pcomps.pres |>
+  filter(year != 2007) |>
+  mutate(
+    choropleth = map2(data, pco, function(dt, pc) {
+      bind_cols(dt, pc$x) |>
+      st_as_sf() |>
+      ggplot(aes(fill = PC1)) +
+      geom_sf() +
+      scale_fill_gradient2(low = "blue", high = "red") +
+      labs(fill = "PC", title = title)
+    })
+  ) |>
+  pull(choropleth) |>
+  wrap_plots(ncol = 1)
+```
+
+Unsurprisingly we get the classic west-fight/east-left devide of Paris with
+the 16th and 17th arrondissement being more right-leaning, and the 19th and 20th
+being the more left-leaning.
+
+TODO le paragraphe précédent est très mal écrit mais il faut aller dormir.
+
+## European Elections (2014 vs 2024)
 
 ```{r}
 pcomps |>
@@ -137,8 +187,6 @@ pwalk(function(type, year, round, pco, ...) {
 })
 ```
 
-## European Elections in Paris (2014 vs 2024)
-
 #### 2014
 * **PC1 (The Left/Right Spectrum):** The primary horizontal axis (explaining 55.5% of the variance) cleanly separates the traditional political families. On the left side of the graph, we find the conservative Right (*Alain Lamassoure*). On the right side, a scattered Left bloc (*Patrick Le Hyaric*, *Pascal Durand*, *Pervenche Berès*).
 
@@ -148,3 +196,11 @@ pwalk(function(type, year, round, pco, ...) {
 * **The Left/Right Shift:** The graph's orientation has flipped (which is mathematically normal in PCA), but the divide is starker. The Left bloc (*Aubry*, *Toussaint*, *Glucksmann*) is on the left side, while the Right/Center bloc (*Bellamy*, *Hayer*, *Bardella*) is on the right side.
 * **The "Glucksmann/Toussaint" Fusion:**  Look at *Raphaël Glucksmann* (Center-Left) and *Marie Toussaint* (Greens). Their arrows are practically glued together, pointing to the exact same sociological space (down-left). In Paris, the moderate left and the ecologist electorate became virtually indistinguishable in 2024. This is the most striking finding of this chart.
 * **A double polarization: ** We can clearly see a socio-economic axis (*Aubry* vs. *Bellamy* and *Hayer*) crossing with a cultural axis (*Glucksmann* and *Toussaint* vs. *Bardella*)
+
+# Clustering
+
+TODO
+
+# Linear regression
+
+TODO
