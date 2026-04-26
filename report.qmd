@@ -217,280 +217,42 @@ pcomps.euro |>
 #### 2024
 * **Left-right shift:** The graph's orientation has flipped, which is perfectly normal in PCA, but the divide is still there. The left bloc (*Aubry*, *Toussaint*, *Glucksmann*) now appears on the left side, while the right/center bloc (*Bellamy*, *Hayer*, *Bardella*) is on the right.
 * **The Glucksmann/Toussaint convergence:** *Raphaël Glucksmann* (center-left) and *Marie Toussaint* (Greens) are roughly aligned, pointing to the same sociological space in the lower-left quadrant. In Paris, the moderate left and the ecologist electorate became quite similar in 2024, which is the strongest signal in this chart.
-* **A double polarization:** The second axis an extremes/moderates divide. On the upper half of the graph, we find the extremes (*Jordan Bardella* on the far right and *Manon aubry* on the far left), while the more moderate candidates (*Nicolas Hayer* and *Raphaël Glucksmann*) are in the lower half. This suggests that in 2024, the political landscape was not only structured by the traditional left-right divide, but also by a divide between moderate and more extreme candidates.
+* **A double polarization:** The second axis an extremes/moderates divide. On the upper half of the graph, we find the extremes (*Jordan Bardella* on the far right and *Manon Aubry* on the far left), while the more moderate candidates (*Nicolas Hayer* and *Raphaël Glucksmann*) are in the lower half. This suggests that in 2024, the political landscape was not only structured by the traditional left-right divide, but also by a divide between moderate and more extreme candidates.
 
 # Clustering
 
-Legislative elections are trickier to cluster directly because each constituency has a different set of candidates. To compare polling stations across all constituencies and years, we therefore build a common feature space from first-round results only.
-
-For each polling station, we compute:
-
-* turnout: nb_votant / nb_inscr
-* blank and null share: nb_bl_nul / nb_votant
-* vote share of the leading candidate
-* margin between the first and second candidate
-* effective number of candidates $N_{eff} = 1 / \sum_i p_i^2$, where $p_i$ is the candidate vote share among expressed votes
-
 ```{r}
-#| label: clustering-features
+#| label: clustering
 
-row_second <- function(m) {
-  apply(m, 1, function(x) {
-    sx <- sort(x, decreasing = TRUE)
-    if (length(sx) >= 2) sx[2] else 0
-  })
-}
-
-legi_clust <- elections |>
-  filter(type == "legislatives", round == 1) |>
+legi.2024 <- elections |>
+  filter(type == "legislatives", year == 2024, round == 1) |>
+  pluck("data") |>
+  bind_rows() |>
+  rowwise() |>
   mutate(
-    data = map(data, function(df) {
-      cand <- candidates(df) |> as.matrix()
-      exprim <- df$nb_exprim
-      votant <- df$nb_votant
-      inscr <- df$nb_inscr
-
-      shares <- sweep(cand, 1, exprim, "/")
-      shares[!is.finite(shares)] <- 0
-
-      top1 <- apply(shares, 1, max)
-      top2 <- row_second(shares)
-      hhi <- rowSums(shares^2)
-
-      tibble(
-        num_arrond = df$num_arrond,
-        turnout = ifelse(inscr > 0, votant / inscr, NA_real_),
-        blank_null_share = ifelse(votant > 0, df$nb_bl_nul / votant, NA_real_),
-        top1_share = top1,
-        margin_12 = top1 - top2,
-        effective_candidates = ifelse(hhi > 0, 1 / hhi, NA_real_)
-      )
-    })
+    turnout = nb_votant / nb_inscr * 100,
+    procu = nb_procu / nb_votant * 100,
+    blanc = nb_bl_nul / nb_votant * 100,
+    tmp = c_across(16:last_col()) |> sort(decreasing = TRUE) |> list(),
+    best = tmp[1] / nb_votant * 100,
+    second = tmp[2] / nb_votant * 100,
+    gap = best - second,
+    .keep = "unused"
   ) |>
-  select(year, constituency, data) |>
-  unnest(data) |>
-  drop_na()
+  select(-tmp) |>
+  filter(turnout > 30) # remove the station for prisoners
 
-nrow(legi_clust)
+ggplot(legi.2024, aes(x = gap, y = blanc)) +
+  geom_point()
 
-```
+library(generics)
 
-To choose the number of clusters $k$, we run k-means on standardized features and compare average silhouette scores for $k \in \{2,\dots,6\}$.
-
-```{r}
-#| label: clustering-silhouette
-
-clustering_matrix <- legi_clust |>
-  select(turnout, blank_null_share, top1_share, margin_12, effective_candidates) |>
-  as.matrix() |>
-  scale()
-
-ks <- 2:6
-
-set.seed(123)
-sil_tbl <- tibble(
-  k = ks,
-  silhouette = map_dbl(ks, function(k) {
-    km <- kmeans(clustering_matrix, centers = k, nstart = 50)
-    ss <- cluster::silhouette(km$cluster, dist(clustering_matrix))
-    mean(ss[, 3])
-  })
-)
-
-best_k <- sil_tbl |>
-  slice_max(silhouette, n = 1, with_ties = FALSE) |>
-  pull(k)
-
-sil_tbl |>
-  ggplot(aes(x = k, y = silhouette)) +
-  geom_line(color = "navy") +
-  geom_point(color = "navy", size = 2) +
-  scale_x_continuous(breaks = ks) +
-  labs(
-    title = "Average silhouette by number of clusters",
-    x = "Number of clusters (k)",
-    y = "Average silhouette"
-  )
+kmeans(legi.2024 |> select(gap, blanc), centers = 3) |>
+  augment(legi.2024) |>
+  ggplot(aes(x = gap, y = blanc, color = .cluster)) +
+  geom_point()
 
 ```
-
-The silhouette criterion selects $k = `r best_k`$, which is the most stable partition in this range.
-
-```{r}
-#| label: clustering-fit
-
-set.seed(123)
-km_legi <- kmeans(clustering_matrix, centers = best_k, nstart = 100)
-
-legi_clust <- legi_clust |>
-  mutate(cluster = factor(km_legi$cluster))
-
-cluster_profiles <- legi_clust |>
-  group_by(cluster) |>
-  summarise(
-    n = n(),
-    turnout = mean(turnout),
-    blank_null_share = mean(blank_null_share),
-    top1_share = mean(top1_share),
-    margin_12 = mean(margin_12),
-    effective_candidates = mean(effective_candidates),
-    .groups = "drop"
-  ) |>
-  mutate(share = n / sum(n)) |>
-  select(cluster, n, share, turnout, blank_null_share, top1_share, margin_12, effective_candidates)
-
-competitive_cluster <- cluster_profiles |> slice_min(top1_share, n = 1)
-concentrated_cluster <- cluster_profiles |> slice_max(top1_share, n = 1)
-
-cluster_profiles |>
-  gt() |>
-  fmt_percent(columns = c(share, turnout, blank_null_share, top1_share, margin_12), decimals = 1) |>
-  fmt_number(columns = effective_candidates, decimals = 2) |>
-  tab_header(title = str_glue("Cluster profiles for legislative elections (k = {best_k})"))
-
-```
-
-To make the segmentation directly readable on a plane, we also build a dedicated 2D clustering. We first project polling stations on the first two principal components of the standardized feature matrix, then run k-means on this 2D representation.
-
-```{r}
-#| label: clustering-2d-scatter
-
-clustering_2d <- prcomp(clustering_matrix)$x[, 1:2] |>
-  as_tibble() |>
-  setNames(c("Dim1", "Dim2"))
-
-ks_2d <- 2:6
-
-set.seed(123)
-sil_tbl_2d <- tibble(
-  k = ks_2d,
-  silhouette = map_dbl(ks_2d, function(k) {
-    km <- kmeans(clustering_2d, centers = k, nstart = 50)
-    ss <- cluster::silhouette(km$cluster, dist(clustering_2d))
-    mean(ss[, 3])
-  })
-)
-
-best_k_2d <- sil_tbl_2d |>
-  slice_max(silhouette, n = 1, with_ties = FALSE) |>
-  pull(k)
-
-set.seed(123)
-km_2d <- kmeans(clustering_2d, centers = best_k_2d, nstart = 100)
-
-legi_clust_2d <- legi_clust |>
-  select(year, constituency, num_arrond) |>
-  bind_cols(clustering_2d) |>
-  mutate(cluster_2d = factor(km_2d$cluster))
-
-centroids_2d <- legi_clust_2d |>
-  group_by(cluster_2d) |>
-  summarise(Dim1 = mean(Dim1), Dim2 = mean(Dim2), .groups = "drop")
-
-ggplot(legi_clust_2d, aes(x = Dim1, y = Dim2, color = cluster_2d)) +
-  geom_point(alpha = 0.35, size = 1.1) +
-  stat_ellipse(aes(group = cluster_2d), linewidth = 0.7, alpha = 0.25, show.legend = FALSE) +
-  geom_point(
-    data = centroids_2d,
-    aes(x = Dim1, y = Dim2),
-    shape = 4, size = 3, stroke = 1.1, color = "black",
-    inherit.aes = FALSE
-  ) +
-  scale_color_brewer(palette = "Set1") +
-  labs(
-    title = str_glue("2D clustering of polling stations (k = {best_k_2d})"),
-    subtitle = "k-means on the first two principal components",
-    x = "Dimension 1",
-    y = "Dimension 2",
-    color = "2D cluster"
-  )
-
-```
-
-```{r}
-#| label: clustering-by-year
-
-cluster_by_year <- legi_clust |>
-  count(year, cluster) |>
-  group_by(year) |>
-  mutate(share = n / sum(n)) |>
-  ungroup()
-
-share_2017_concentrated <- cluster_by_year |>
-  filter(year == 2017, cluster == concentrated_cluster$cluster) |>
-  pull(share)
-
-share_2024_concentrated <- cluster_by_year |>
-  filter(year == 2024, cluster == concentrated_cluster$cluster) |>
-  pull(share)
-
-cluster_by_year |>
-  ggplot(aes(x = factor(year), y = share, fill = cluster)) +
-  geom_col(position = "fill") +
-  scale_y_continuous(labels = scales::label_percent()) +
-  scale_fill_brewer(palette = "Set1") +
-  labs(
-    title = "Cluster composition over legislative elections",
-    x = "Year",
-    y = "Share of polling stations",
-    fill = "Cluster"
-  )
-
-```
-
-To assess whether the cluster structure is spatially patterned, we now compare clusters across arrondissements.
-
-```{r}
-#| label: clustering-arrond-association
-
-arrond_cluster <- legi_clust |>
-  count(num_arrond, cluster) |>
-  group_by(num_arrond) |>
-  mutate(share = n / sum(n)) |>
-  ungroup()
-
-chi_arrond <- chisq.test(table(legi_clust$num_arrond, legi_clust$cluster))
-cramers_v_arrond <- sqrt(
-  unname(chi_arrond$statistic) /
-    (sum(chi_arrond$observed) * (min(dim(chi_arrond$observed)) - 1))
-)
-
-arrond_concentrated <- arrond_cluster |>
-  filter(cluster == concentrated_cluster$cluster) |>
-  arrange(desc(share))
-
-arrond_cluster |>
-  ggplot(aes(x = factor(num_arrond), y = share, fill = cluster)) +
-  geom_col() +
-  scale_y_continuous(labels = scales::label_percent()) +
-  scale_fill_brewer(palette = "Set1") +
-  labs(
-    title = "Cluster composition by arrondissement",
-    subtitle = "Shares are computed within each arrondissement",
-    x = "Arrondissement",
-    y = "Share of polling stations",
-    fill = "Cluster"
-  )
-
-arrond_concentrated |>
-  slice_head(n = 10) |>
-  transmute(arrondissement = num_arrond, concentrated_share = share) |>
-  gt() |>
-  fmt_percent(columns = concentrated_share, decimals = 1) |>
-  tab_header(title = "Top arrondissements by concentrated-cluster share")
-
-```
-
-The relationship is statistically clear: the chi-square test rejects independence between arrondissement and cluster assignment ($\chi^2 = `r round(unname(chi_arrond$statistic), 1)`$, $p < `r format(chi_arrond$p.value, scientific = TRUE, digits = 2)`$), and the effect size is moderate ($V = `r round(cramers_v_arrond, 3)`$).
-
-The concentrated profile (cluster `r concentrated_cluster$cluster`) is most prevalent in arrondissements `r str_c(arrond_concentrated$num_arrond[1:5], collapse = ", ")`, where its share ranges from `r scales::percent(min(arrond_concentrated$share[1:5]), accuracy = 0.1)` to `r scales::percent(max(arrond_concentrated$share[1:5]), accuracy = 0.1)`.
-
-Two distinct voting configurations emerge:
-
-* **A competitive profile** (cluster `r competitive_cluster$cluster`): low concentration, with a leading candidate at about `r scales::percent(competitive_cluster$top1_share, accuracy = 0.1)` and an average first-second margin of `r scales::percent(competitive_cluster$margin_12, accuracy = 0.1)`.
-* **A concentrated profile** (cluster `r concentrated_cluster$cluster`): much stronger local dominance, with a leading candidate around `r scales::percent(concentrated_cluster$top1_share, accuracy = 0.1)` and a margin close to `r scales::percent(concentrated_cluster$margin_12, accuracy = 0.1)`.
-
-The temporal split is also informative: the concentrated profile represents only `r scales::percent(share_2017_concentrated, accuracy = 0.1)` of polling stations in 2017, but reaches `r scales::percent(share_2024_concentrated, accuracy = 0.1)` in 2024. This confirms a sharp increase in local vote concentration during the most recent legislative election.
 
 # Linear regression
 
