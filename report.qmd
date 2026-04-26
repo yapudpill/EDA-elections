@@ -75,7 +75,7 @@ top_n <- function(df, n) {
 
 pcomps <- elections |>
   mutate(
-    pco = map(data, \(df) prcomp(candidates(df) |> top_n(6), scale. = TRUE)),
+    pco = map(data, \(df) prcomp(candidates(df) |> top_n(6) |> rename_with(format_names), scale. = TRUE)),
     title = str_glue("{str_to_title(str_sub(type, end = 4))}. {year}, tour {round}")
   )
 
@@ -88,12 +88,6 @@ pcomps <- elections |>
 
 pcomps.pres <- filter(pcomps, type == "presidentielles", round == 1)
 
-graphs <- pcomps.pres |>
-  mutate(
-    screeplot = map(pco, partial(fviz_screeplot, addlabels = TRUE, main = title)),
-    biplot = map(pco, partial(fviz_pca_var, col.var="royalblue", repel = TRUE, title = title))
-  )
-
 ```
 
 Let us start by the most well known election: the presidential election. For these elections, the top performing candidates are as follow:
@@ -105,6 +99,7 @@ pcomps.pres |>
   mutate(cand = map(pco, \(x) names(x$center) |> format_names())) |>
   select(Year = year, Candidates = cand) |>
   gt()
+
 ```
 
 We first inspect the scree plots to check whether a two-dimensional representation is appropriate.
@@ -112,18 +107,22 @@ We first inspect the scree plots to check whether a two-dimensional representati
 ```{r}
 #| label: pca-pres-screeplot
 
-wrap_plots(graphs$screeplot, axes = "collect")
+pcomps.pres |>
+  pmap(function(pco, title, ...) fviz_screeplot(pco, addlabels = TRUE, main = title)) |>
+  wrap_plots(axes = "collect")
 
 ```
 
 In every PCA, the first two principal axes explain at least 75% of the total variance. The elbow is not as sharp as one would usually hope for, but the remaining variance is still limited enough for us to focus on the correlation circles:
 
 ```{r}
-#| label: pca-pres-biplot
+#| label: pca-pres-var
 #| lightbox:
-#|  group: pca-pres-biplot
+#|  group: pca-pres-var
 
-walk(graphs$biplot, print)
+pcomps.pres |>
+  pmap(function(pco, title, ...) fviz_pca_var(pco, col.var = "royalblue", repel = TRUE, title = title)) |>
+  walk(print)
 
 ```
 
@@ -147,18 +146,16 @@ Since most of the political dynamic appears to be captured by the first principa
 
 pcomps.pres |>
   filter(year != 2007) |>
-  mutate(
-    choropleth = map2(data, pco, function(dt, pc) {
-      bind_cols(dt, pc$x) |>
+  pmap(function(data, pco, title, ...) {
+      bind_cols(data, pco$x) |>
       st_as_sf() |>
       ggplot(aes(fill = PC1)) +
       geom_sf() +
       scale_fill_gradient2(low = "blue", high = "red") +
       labs(title = title)
-    })
-  ) |>
-  pull(choropleth) |>
+  }) |>
   wrap_plots(ncol = 1)
+
 ```
 
 As expected, the map reveals a clear west-right / east-left divide in Paris. The western districts, especially the 16th and 17th arrondissements, are associated with more right-leaning values of the first principal component, while the eastern districts, especially the 19th and 20th, are associated with more left-leaning values. The first axis therefore captures a large part of the territorial opposition between affluent western neighborhoods and more popular eastern ones.
@@ -166,32 +163,61 @@ As expected, the map reveals a clear west-right / east-left divide in Paris. The
 ## European Elections (2014 vs 2024)
 
 ```{r}
-pcomps |>
-filter(type == "europeennes", round == 1) |>
-pwalk(function(type, year, round, pco, ...) {
-  print(fviz_screeplot(pco) + labs(title = str_glue("Élections {type} {year}")))
-})
+#| label: pca-euro
 
-pcomps |>
-filter(type == "europeennes", round == 1) |>
-pwalk(function(type, year, round, pco, ...) {
-  print(
-    fviz_pca_biplot(pco, label = "var", col.ind = "#BBBBBB", col.var="#0257df") +
-    coord_fixed() +
-    labs(title = str_glue("Élections {type} {year}"))
+pcomps.euro <- filter(pcomps, type == "europeennes")
+
+graphs.euro <- pcomps.euro |>
+  mutate(
+    biplot = pmap(list(pco, data, title), \(x, y, z) {
+      fviz_pca_biplot(x, label = "var", col.var = "royalblue", col.ind = "#BBBBBB", repel = TRUE, title = z, habillage = y$num_arrond)
+    })
   )
-})
+
+```
+
+We use the same approach to analyze the two most recent European elections. Once again, checking the scree plots confirms that a two-dimensional representation is appropriate:
+
+```{r}
+#| label: pca-euro-screeplot
+
+pcomps.euro |>
+  pmap(function(pco, title, ...) fviz_screeplot(pco, addlabels = TRUE, main = title)) |>
+  wrap_plots(axes = "collect")
+
+```
+
+For a more compact view of the results, we focus on the biplots instead of the correlation circles. The biplots show both the candidates and the polling stations, which allows us to better understand how the candidates relate to each other and to the underlying social and territorial divides.
+
+```{r}
+#| label: pca-euro-biplot
+#| lightbox:
+#|  group: pca-euro-biplot
+
+arrond_groups <- character()
+arrond_groups[c(7, 8, 16, 17)] <- "west (7, 8, 16, 17)"
+arrond_groups[c(1:6, 9:15, 18:20)] <- "not-west"
+
+pcomps.euro |>
+  pmap(function(pco, data, title, ...) {
+    fviz_pca_biplot(
+      pco, label = "var", col.var = "navy", title = title,
+      habillage = factor(arrond_groups[data$num_arrond])
+    )
+  }) |>
+  walk(\(x) print(x + coord_fixed()))
+
 ```
 
 #### 2014
-* **PC1 (The Left/Right Spectrum):** The primary horizontal axis (explaining 55.5% of the variance) cleanly separates the traditional political families. On the left side of the graph, we find the conservative Right (*Alain Lamassoure*). On the right side, a scattered Left bloc (*Patrick Le Hyaric*, *Pascal Durand*, *Pervenche Berès*).
+* **PC1 (the left-right spectrum):** The main horizontal axis, which explains 55.5% of the variance, cleanly separates the traditional political families. On one side of the graph is the conservative right (*Alain Lamassoure*); on the other, a more dispersed left bloc (*Patrick Le Hyaric*, *Pascal Durand*, *Pervenche Berès*).
 
-* In 2014, Paris still voted according to a highly fragmented, traditional multi-party system. No single candidate heavily dominated or merged with another's sociological base.
+* In 2014, Paris was still voting within traditional multi-party system. No single candidate clearly dominated, and no major bloc had yet merged with another's sociological base.
 
 #### 2024
-* **The Left/Right Shift:** The graph's orientation has flipped (which is mathematically normal in PCA), but the divide is starker. The Left bloc (*Aubry*, *Toussaint*, *Glucksmann*) is on the left side, while the Right/Center bloc (*Bellamy*, *Hayer*, *Bardella*) is on the right side.
-* **The "Glucksmann/Toussaint" Fusion:**  Look at *Raphaël Glucksmann* (Center-Left) and *Marie Toussaint* (Greens). Their arrows are practically glued together, pointing to the exact same sociological space (down-left). In Paris, the moderate left and the ecologist electorate became virtually indistinguishable in 2024. This is the most striking finding of this chart.
-* **A double polarization: ** We can clearly see a socio-economic axis (*Aubry* vs. *Bellamy* and *Hayer*) crossing with a cultural axis (*Glucksmann* and *Toussaint* vs. *Bardella*)
+* **Left-right shift:** The graph's orientation has flipped, which is perfectly normal in PCA, but the divide is still there. The left bloc (*Aubry*, *Toussaint*, *Glucksmann*) now appears on the left side, while the right/center bloc (*Bellamy*, *Hayer*, *Bardella*) is on the right.
+* **The Glucksmann/Toussaint convergence:** *Raphaël Glucksmann* (center-left) and *Marie Toussaint* (Greens) are roughly aligned, pointing to the same sociological space in the lower-left quadrant. In Paris, the moderate left and the ecologist electorate became quite similar in 2024, which is the strongest signal in this chart.
+* **A double polarization:** The second axis an extremes/moderates divide. On the upper half of the graph, we find the extremes (*Jordan Bardella* on the far right and *Manon aubry* on the far left), while the more moderate candidates (*Nicolas Hayer* and *Raphaël Glucksmann*) are in the lower half. This suggests that in 2024, the political landscape was not only structured by the traditional left-right divide, but also by a divide between moderate and more extreme candidates.
 
 # Clustering
 
