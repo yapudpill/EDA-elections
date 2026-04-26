@@ -18,7 +18,7 @@ library(sf)
 
 # Our Dataset
 
-For this project, we will analyse the electoral results in Paris since 2007 (the year the official open data archives begin). Since a grand total of 16 elections happened since 2007, we only selected a subset that we found interesting:
+This project analyzes electoral results in Paris since 2007, the first year covered by the official open data archives. Because sixteen elections have taken place over that period, we focus on a curated subset that we find the most interesting for our analysis. The following table summarizes the elections we retained:
 
 
 | Election type | Years                  |
@@ -28,11 +28,11 @@ For this project, we will analyse the electoral results in Paris since 2007 (the
 | Legislative   | 2007, 2017, 2022, 2024 |
 | Municipal     | 2008, 2020             |
 
-We selected these elections because they cover the whole 2007-2022 period which will allow us to observe if any changes appear with time. We selected every elections from 2017 onward because the assignment requiers it to fit a linear regression explaining the 2024 parliamentary elections.
+These elections span the whole 2007-2022 period, which makes it possible to observe how voting patterns evolve over time. We also include every election from 2017 onward because the assignment requires it for the linear regression used to explain the 2024 legislative election.
 
-For each of these election, we have a table where each individual is a polling station. The first 15 columns are informations about the election and the station (its location, number of registered voter, number of cast ballots...). Following this, there is one column per candidate which indicate the number of votes they received in each polling station.
+For each election, we work with a table in which each row corresponds to a polling station. The first 15 columns contain information about the election and the station itself, such as its location, the number of registered voters, and the number of cast ballots. The remaining columns correspond to the candidates and record the number of votes each one received at that polling station.
 
-As an example, here is a sample of what we can find about the first round of the 2017 presidential election:
+The following example shows a sample of the data for the first round of the 2017 presidential election:
 
 ```{r}
 #| label: sample
@@ -50,13 +50,13 @@ elections |>
 
 ```
 
-At a glance, we notice that the candidates most liked from the Parisians were Emmanuel Macron (elected), Jean-Luc Mélenchon and François Fillon.
+At first glance, the most popular candidates among Parisians were Emmanuel Macron, Jean-Luc Mélenchon, and François Fillon.
 
 # Using Principal Component Analysis
 
 In this section, we will perform PCA on the columns containing the results of the candidates for multiple elections and showcase some characteristics of the Parisian political landscape.
 
-Since elections tend to have quite a lot of candidates obtaining only few votes, we focused our analysis on the 6 best scoring candidates of each election. We also ignore second rounds because having only two variables is not an interesting situation with PCA.
+Since elections tend to have quite a lot of candidates obtaining only few votes, we focused our analysis on the 6 best scoring candidates of each election. We also ignore second rounds because having only two variables is not a very informative setup for PCA.
 
 ```{r}
 #| label: pca
@@ -96,7 +96,7 @@ graphs <- pcomps.pres |>
 
 ```
 
-Let's start by the most well known election: the presidential election. For these elections, the top performing candidates are as follow:
+Let us start by the most well known election: the presidential election. For these elections, the top performing candidates are as follow:
 
 ```{r}
 #| label: top-pres
@@ -107,7 +107,7 @@ pcomps.pres |>
   gt()
 ```
 
-We will first check the screeplots to assert that using 2 axes on our PCA will be relevant.
+We first inspect the scree plots to check whether a two-dimensional representation is appropriate.
 
 ```{r}
 #| label: pca-pres-screeplot
@@ -116,7 +116,7 @@ wrap_plots(graphs$screeplot, axes = "collect")
 
 ```
 
-In every PCA, the first two principal axes contain at least 75% of the total variance. The elbow of the plot is not as pronounced as we usually want in a PCA but we can still neglect the remaining variance and proceed to look at the correlation circles:
+In every PCA, the first two principal axes explain at least 75% of the total variance. The elbow is not as sharp as one would usually hope for, but the remaining variance is still limited enough for us to focus on the correlation circles:
 
 ```{r}
 #| label: pca-pres-biplot
@@ -128,19 +128,19 @@ walk(graphs$biplot, print)
 ```
 
 #### 2007
-* **The Classic Left/Right Divide:** The horizontal axis perfectly and diametrically opposes *Nicolas Sarkozy* (on the right side of the graph) to *Ségolène Royal* and *Olivier Besancenot* (on the left side). This is the historical left vs. right fracture of the 5th Republic.
-* **The Center vs. The Extremes:** The vertical axis is equally interesting. It isolates *François Bayrou* (the centrist) against the extreme of the political spectrum at the time, *Jean-Marie Le Pen*.
+* **The classic left-right divide:** The horizontal axis clearly opposes *Nicolas Sarkozy* on the right with *Ségolène Royal* and *Olivier Besancenot* on the left. This reproduces the traditional left-right divide of the Fifth Republic.
+* **The center vs. the extremes:** The vertical axis is equally interesting. It sets *François Bayrou*, the centrist candidate, against *Jean-Marie Le Pen*, who sat at the far end of the political spectrum at the time.
 
 #### 2017
-* **The Left/Right Divide Remains:** The horizontal axis still captures the traditional opposition between the Right (*François Fillon*) and the Left (*Jean-Luc Mélenchon* / *Benoît Hamon*).
-* **Growing Alternatives:** The vertical axis becomes more crowded and highlights a new fracture. It directly opposes *Emmanuel Macron* (pointing down) to *Marine Le Pen* (pointing straight up). This visually translates the emergence of a new "Progressivism/Globalism" vs. "Nationalism/Populism" divide that disrupted the old system.
+* **The left-right divide remains:** The horizontal axis still captures the traditional opposition between the Right (*François Fillon*) and the Left (*Jean-Luc Mélenchon* and *Benoît Hamon*).
+* **Growing alternatives:** The vertical axis becomes more informative and reveals a second division. It directly opposes *Emmanuel Macron* (pointing downward) and *Marine Le Pen* (pointing upward), which corresponds to the emergence of a new divide between progressivism/globalism and nationalism/populism.
 
 #### 2022
-* **A Narrowing of the Right:** *Valérie Pécresse's* and *Éric Zemmour's* arrows are almost perfectly superimposed. Mathematically, this means that in Paris, the traditional conservative Right and the Far-Right appealed to the same sociology and neighborhoods (likely the affluent Western districts).
-* **The Left Bloc:** Sitting on the opposite side of the *Pécresse*/*Zemmour* cluster is *Jean-Luc Mélenchon*, dominating his own half of the graph alone (representing the working-class/diverse Eastern districts).
-* **Macron's slide to the right:** Contrary to the previous year, *Emmanuel Macron's* arrow is leaning toward right politicians. This underlines a change in the perception of Macron's politics after his first term, it being actually more right-oriented that expected in 2017.
+* **A narrowing on the right:** *Valérie Pécresse* and *Éric Zemmour* are almost perfectly superimposed. In practical terms, this suggests that in Paris the traditional conservative right and the far right appealed to very similar social profiles and neighborhoods, likely in the more affluent western districts.
+* **The left bloc:** Sitting On the opposite side of the *Pécresse*/*Zemmour* cluster, *Jean-Luc Mélenchon* stands largely alone and dominates his half of the graph. This is consistent with support coming from more working-class and diverse eastern districts.
+* **Macron's shift to the right:** Compared with the previous election, *Emmanuel Macron* now leans toward right-wing candidates. This suggests that perceptions of his politics shifted after his first term, and that his position in 2022 appeared more right-leaning than it did in 2017.
 
-Since most of the political dynamic seems to be happening in the first principal axis, let's represent on a map where each polling station is located on that axis.
+Since most of the political dynamic appears to be captured by the first principal axis, we now map each polling station according to its position on that axis.
 
 ```{r}
 #| label: choropleth
@@ -154,18 +154,14 @@ pcomps.pres |>
       ggplot(aes(fill = PC1)) +
       geom_sf() +
       scale_fill_gradient2(low = "blue", high = "red") +
-      labs(fill = "PC", title = title)
+      labs(title = title)
     })
   ) |>
   pull(choropleth) |>
   wrap_plots(ncol = 1)
 ```
 
-Unsurprisingly we get the classic west-fight/east-left devide of Paris with
-the 16th and 17th arrondissement being more right-leaning, and the 19th and 20th
-being the more left-leaning.
-
-TODO le paragraphe précédent est très mal écrit mais il faut aller dormir.
+As expected, the map reveals a clear west-right / east-left divide in Paris. The western districts, especially the 16th and 17th arrondissements, are associated with more right-leaning values of the first principal component, while the eastern districts, especially the 19th and 20th, are associated with more left-leaning values. The first axis therefore captures a large part of the territorial opposition between affluent western neighborhoods and more popular eastern ones.
 
 ## European Elections (2014 vs 2024)
 
