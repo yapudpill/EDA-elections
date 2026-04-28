@@ -14,6 +14,7 @@ library(patchwork)
 library(gt)
 library(sf)
 library(generics)
+library(broom)
 
 ```
 
@@ -218,13 +219,14 @@ pcomps.euro |>
 ## Analyzing the Legislative Electoral Dynamics
 
 ```{r}
-#| label: clustering
+#| label: clustering-functions
 
 legi_data <- function(select_year) {
   elections |>
   filter(type == "legislatives", year == select_year, round == 1) |>
   pluck("data") |>
   bind_rows() |>
+  filter(id_bvote != "12-99") |> # remove the station for prisoners
   rowwise() |>
   mutate(
     turnout = nb_votant / nb_inscr * 100,
@@ -236,8 +238,7 @@ legi_data <- function(select_year) {
     gap = best - second,
     .keep = "unused"
   ) |>
-  select(-tmp) |>
-  filter(turnout > 30) # remove the station for prisoners
+  select(-tmp)
 }
 
 add_geo <- function(df) {
@@ -252,33 +253,34 @@ add_geo <- function(df) {
   left_join(df, geo, by = "id_bvote")
 }
 
-cluster_analysis <- function(df, select_year) {
+cluster_analysis <- function(df) {
   set.seed(22)
-  modele_kmeans <-kmeans(df |> select(gap, blanc) |> scale() , centers = 3, nstart = 32L)
-  df2 <- augment(modele_kmeans, df) 
-  
-  p1 <- ggplot(df2,aes(x = gap, y = blanc, color = .cluster)) +
-  geom_point() +
-  labs(
-    subtitle = "Based on: Competitiveness (Gap) and Protest Vote (Blank)",
-    x = "Gap between 1st and 2nd candidate (%)",
-    y = "Blank & Null votes (%)",
-    color = "Cluster"
-  ) +
-  theme_minimal()
+  df <- kmeans(df |> select(gap, blanc) |> scale(), centers = 3, nstart = 32L) |>
+    augment(df)
 
-  p2 <- df2 |>
-  add_geo() |>
-  st_as_sf() |>
-  ggplot(aes(fill = .cluster)) +
-  geom_sf() +
-  labs(
-    title = paste("Map of ElectoralClusters (", select_year, ")", sep = ""),
-    fill = "Cluster"
-  ) +
-  theme_void()
-  
-  p1 / p2
+  p1 <- ggplot(df, aes(x = gap, y = blanc, color = .cluster)) +
+    geom_point() +
+    labs(
+      title = "Based on: Competitiveness (Gap) and Protest Vote (Blank)",
+      x = "Gap between 1st and 2nd candidate (%)",
+      y = "Blank & Null votes (%)",
+      color = "Cluster"
+    ) +
+    theme_minimal()
+
+  p2 <- df |>
+    add_geo() |>
+    st_as_sf() |>
+    ggplot(aes(fill = .cluster)) +
+    geom_sf() +
+    labs(
+      title = str_c("Map of ElectoralClusters (", df$annee[1], ")"),
+      fill = "Cluster"
+    ) +
+    theme_void()
+
+  print(p2)
+  print(p1)
 }
 
 ```
@@ -288,7 +290,7 @@ cluster_analysis <- function(df, select_year) {
 ```{r}
 
 legi.2024 <- legi_data(2024)
-cluster_analysis(legi.2024, "2024")
+cluster_analysis(legi.2024)
 
 ```
 
@@ -307,7 +309,7 @@ Ultimately, combining the scatter plot with the geographical map proves that ele
 ```{r}
 
 legi.2017 <- legi_data(2017)
-cluster_analysis(legi.2017, "2017")
+cluster_analysis(legi.2017)
 
 ```
 
