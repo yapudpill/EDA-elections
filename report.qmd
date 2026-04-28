@@ -96,7 +96,7 @@ Let us start by the most well known election: the presidential election. For the
 #| label: top-pres
 
 pcomps.pres |>
-  mutate(cand = map(pco, \(x) names(x$center) |> format_names())) |>
+  mutate(cand = map(pco, \(x) names(x$center))) |>
   select(Year = year, Candidates = cand) |>
   gt()
 
@@ -166,13 +166,6 @@ As expected, the map reveals a clear west-right / east-left divide in Paris. The
 #| label: pca-euro
 
 pcomps.euro <- filter(pcomps, type == "europeennes")
-
-graphs.euro <- pcomps.euro |>
-  mutate(
-    biplot = pmap(list(pco, data, title), \(x, y, z) {
-      fviz_pca_biplot(x, label = "var", col.var = "royalblue", col.ind = "#BBBBBB", repel = TRUE, title = z, habillage = y$num_arrond)
-    })
-  )
 
 ```
 
