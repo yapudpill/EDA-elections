@@ -13,6 +13,7 @@ library(factoextra)
 library(patchwork)
 library(gt)
 library(sf)
+library(generics)
 
 ```
 
@@ -245,12 +246,43 @@ legi.2024 <- elections |>
 ggplot(legi.2024, aes(x = gap, y = blanc)) +
   geom_point()
 
-library(generics)
+set.seed(22)
+kmeans(legi.2024 |> select(gap, blanc) |> scale() , centers = 3, nstart = 32L) |>
+  augment(legi.2024) |>
+  ggplot(aes(x = gap, y = blanc, color = .cluster)) +
+  geom_point() +
+  labs(
+    title = " Clustering (2024 Legislative Elections)",
+    subtitle = "Based on: Competitiveness (Gap) and Protest Vote (Blank)",
+    x = "Gap between 1st and 2nd candidate (%)",
+    y = "Blank & Null votes (%)",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+
+add_geo <- function(df) {
+  if ("geo_shape" %in% names(df)) return(df)
+
+  y <- df$annee[1]
+  geo <- elections |>
+    filter(type %in% c("presidentielles", "europeennes"), year == y, round == 1) |>
+    pluck("data", 1) |>
+    select(id_bvote, geo_shape, geo_point_2d)
+
+  left_join(df, geo, by = "id_bvote")
+}
 
 kmeans(legi.2024 |> select(gap, blanc), centers = 3) |>
   augment(legi.2024) |>
-  ggplot(aes(x = gap, y = blanc, color = .cluster)) +
-  geom_point()
+  add_geo() |>
+  st_as_sf() |>
+  ggplot(aes(fill = .cluster)) +
+  geom_sf() +
+  labs(
+    title = "Map of Electoral Clusters (2024)",
+    fill = "Cluster"
+  ) +
+  theme_void()
 
 ```
 
