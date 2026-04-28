@@ -222,13 +222,14 @@ pcomps.euro |>
 
 # Clustering
 
-### Analyzing the 2024 Legislative Electoral Dynamics
+## Analyzing the Legislative Electoral Dynamics
 
 ```{r}
 #| label: clustering
 
-legi.2024 <- elections |>
-  filter(type == "legislatives", year == 2024, round == 1) |>
+legi_data <- function(select_year) {
+  elections |>
+  filter(type == "legislatives", year == select_year, round == 1) |>
   pluck("data") |>
   bind_rows() |>
   rowwise() |>
@@ -244,20 +245,7 @@ legi.2024 <- elections |>
   ) |>
   select(-tmp) |>
   filter(turnout > 30) # remove the station for prisoners
-
-set.seed(22)
-kmeans(legi.2024 |> select(gap, blanc) |> scale() , centers = 3, nstart = 32L) |>
-  augment(legi.2024) |>
-  ggplot(aes(x = gap, y = blanc, color = .cluster)) +
-  geom_point() +
-  labs(
-    title = " Clustering (2024 Legislative Elections)",
-    subtitle = "Based on: Competitiveness (Gap) and Protest Vote (Blank)",
-    x = "Gap between 1st and 2nd candidate (%)",
-    y = "Blank & Null votes (%)",
-    color = "Cluster"
-  ) +
-  theme_minimal()
+}
 
 add_geo <- function(df) {
   if ("geo_shape" %in% names(df)) return(df)
@@ -271,17 +259,43 @@ add_geo <- function(df) {
   left_join(df, geo, by = "id_bvote")
 }
 
-kmeans(legi.2024 |> select(gap, blanc), centers = 3) |>
-  augment(legi.2024) |>
+cluster_analysis <- function(df, select_year) {
+  set.seed(22)
+  modele_kmeans <-kmeans(df |> select(gap, blanc) |> scale() , centers = 3, nstart = 32L)
+  df2 <- augment(modele_kmeans, df) 
+  
+  p1 <- ggplot(df2,aes(x = gap, y = blanc, color = .cluster)) +
+  geom_point() +
+  labs(
+    subtitle = "Based on: Competitiveness (Gap) and Protest Vote (Blank)",
+    x = "Gap between 1st and 2nd candidate (%)",
+    y = "Blank & Null votes (%)",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+
+  p2 <- df2 |>
   add_geo() |>
   st_as_sf() |>
   ggplot(aes(fill = .cluster)) +
   geom_sf() +
   labs(
-    title = "Map of Electoral Clusters (2024)",
+    title = paste("Map of ElectoralClusters (", select_year, ")", sep = ""),
     fill = "Cluster"
   ) +
   theme_void()
+  
+  p1 / p2
+}
+
+```
+
+### 2024
+
+```{r}
+
+legi.2024 <- legi_data(2024)
+cluster_analysis(legi.2024, "2024")
 
 ```
 
@@ -294,6 +308,15 @@ To better understand the voting dynamics during the 2024 Legislative elections, 
 * **Cluster 3 (Blue) - The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a very tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a large central and western swath of Paris. In these highly competitive areas, voters were heavily engaged in choosing between closely tied candidates, leaving little room for protest votes.
 
 Ultimately, combining the scatter plot with the geographical map proves that electoral behavior in Paris (such as abstentionism, competitiveness, and protest voting) is not random, but deeply rooted in the city's socio-territorial divides.
+
+### 2017
+
+```{r}
+
+legi.2017 <- legi_data(2017)
+cluster_analysis(legi.2017, "2017")
+
+```
 
 # Linear regression
 
