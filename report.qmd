@@ -222,6 +222,8 @@ pcomps.euro |>
 
 # Clustering
 
+### Analyzing the 2024 Legislative Electoral Dynamics
+
 ```{r}
 #| label: clustering
 
@@ -242,9 +244,6 @@ legi.2024 <- elections |>
   ) |>
   select(-tmp) |>
   filter(turnout > 30) # remove the station for prisoners
-
-ggplot(legi.2024, aes(x = gap, y = blanc)) +
-  geom_point()
 
 set.seed(22)
 kmeans(legi.2024 |> select(gap, blanc) |> scale() , centers = 3, nstart = 32L) |>
@@ -285,6 +284,16 @@ kmeans(legi.2024 |> select(gap, blanc), centers = 3) |>
   theme_void()
 
 ```
+
+To better understand the voting dynamics during the 2024 Legislative elections, we clustered the polling stations based on two behavioral variables: the gap between the first and second candidate and the protest vote. The K-means algorithm naturally identified three distinct geographical and behavioral profiles:
+
+* **Cluster 1 (Red) - The Decisive Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 40%) and the lowest rate of blank votes. Geographically, this cluster completely dominates the North-Eastern districts (such as the 18th, 19th, and 20th arrondissements). This reflects areas where voters were highly aligned with the local front-runner (historically the left-wing bloc), resulting in decisive victories and virtually no protest voting.
+
+* **Cluster 2 (Green) - The Protest Zones:** This cluster is primarily isolated by its high y-axis values (Blank & Null votes above 1.5%), regardless of the gap. On the map, these zones are heavily present in the 5th, 8th, 12th, 13th, 16th arrondissements) and outer edges of the capital. This highlights specific districts where a significant portion of the electorate felt unrepresented by the local candidate offerings, choosing to cast a blank ballot to express their political dissatisfaction.
+
+* **Cluster 3 (Blue) - The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a very tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a large central and western swath of Paris. In these highly competitive areas, voters were heavily engaged in choosing between closely tied candidates, leaving little room for protest votes.
+
+Ultimately, combining the scatter plot with the geographical map proves that electoral behavior in Paris (such as abstentionism, competitiveness, and protest voting) is not random, but deeply rooted in the city's socio-territorial divides.
 
 # Linear regression
 
