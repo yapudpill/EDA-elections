@@ -13,6 +13,7 @@ library(factoextra)
 library(patchwork)
 library(gt)
 library(sf)
+library(generics)
 
 ```
 
@@ -214,11 +215,14 @@ pcomps.euro |>
 
 # Clustering
 
+## Analyzing the Legislative Electoral Dynamics
+
 ```{r}
 #| label: clustering
 
-legi.2024 <- elections |>
-  filter(type == "legislatives", year == 2024, round == 1) |>
+legi_data <- function(select_year) {
+  elections |>
+  filter(type == "legislatives", year == select_year, round == 1) |>
   pluck("data") |>
   bind_rows() |>
   rowwise() |>
@@ -234,16 +238,76 @@ legi.2024 <- elections |>
   ) |>
   select(-tmp) |>
   filter(turnout > 30) # remove the station for prisoners
+}
 
-ggplot(legi.2024, aes(x = gap, y = blanc)) +
-  geom_point()
+add_geo <- function(df) {
+  if ("geo_shape" %in% names(df)) return(df)
 
-library(generics)
+  y <- df$annee[1]
+  geo <- elections |>
+    filter(type %in% c("presidentielles", "europeennes"), year == y, round == 1) |>
+    pluck("data", 1) |>
+    select(id_bvote, geo_shape, geo_point_2d)
 
-kmeans(legi.2024 |> select(gap, blanc), centers = 3) |>
-  augment(legi.2024) |>
-  ggplot(aes(x = gap, y = blanc, color = .cluster)) +
-  geom_point()
+  left_join(df, geo, by = "id_bvote")
+}
+
+cluster_analysis <- function(df, select_year) {
+  set.seed(22)
+  modele_kmeans <-kmeans(df |> select(gap, blanc) |> scale() , centers = 3, nstart = 32L)
+  df2 <- augment(modele_kmeans, df) 
+  
+  p1 <- ggplot(df2,aes(x = gap, y = blanc, color = .cluster)) +
+  geom_point() +
+  labs(
+    subtitle = "Based on: Competitiveness (Gap) and Protest Vote (Blank)",
+    x = "Gap between 1st and 2nd candidate (%)",
+    y = "Blank & Null votes (%)",
+    color = "Cluster"
+  ) +
+  theme_minimal()
+
+  p2 <- df2 |>
+  add_geo() |>
+  st_as_sf() |>
+  ggplot(aes(fill = .cluster)) +
+  geom_sf() +
+  labs(
+    title = paste("Map of ElectoralClusters (", select_year, ")", sep = ""),
+    fill = "Cluster"
+  ) +
+  theme_void()
+  
+  p1 / p2
+}
+
+```
+
+### 2024
+
+```{r}
+
+legi.2024 <- legi_data(2024)
+cluster_analysis(legi.2024, "2024")
+
+```
+
+To better understand the voting dynamics during the 2024 Legislative elections, we clustered the polling stations based on two behavioral variables: the gap between the first and second candidate and the protest vote. The K-means algorithm naturally identified three distinct geographical and behavioral profiles:
+
+* **Cluster 1 (Red) - The Decisive Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 40%) and the lowest rate of blank votes. Geographically, this cluster completely dominates the North-Eastern districts (such as the 18th, 19th, and 20th arrondissements). This reflects areas where voters were highly aligned with the local front-runner (historically the left-wing bloc), resulting in decisive victories and virtually no protest voting.
+
+* **Cluster 2 (Green) - The Protest Zones:** This cluster is primarily isolated by its high y-axis values (Blank & Null votes above 1.5%), regardless of the gap. On the map, these zones are heavily present in the 5th, 8th, 12th, 13th, 16th arrondissements) and outer edges of the capital. This highlights specific districts where a significant portion of the electorate felt unrepresented by the local candidate offerings, choosing to cast a blank ballot to express their political dissatisfaction.
+
+* **Cluster 3 (Blue) - The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a very tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a large central and western swath of Paris. In these highly competitive areas, voters were heavily engaged in choosing between closely tied candidates, leaving little room for protest votes.
+
+Ultimately, combining the scatter plot with the geographical map proves that electoral behavior in Paris (such as abstentionism, competitiveness, and protest voting) is not random, but deeply rooted in the city's socio-territorial divides.
+
+### 2017
+
+```{r}
+
+legi.2017 <- legi_data(2017)
+cluster_analysis(legi.2017, "2017")
 
 ```
 
