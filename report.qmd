@@ -54,7 +54,7 @@ elections |>
 
 At first glance, the most popular candidates among Parisians were Emmanuel Macron, Jean-Luc Mélenchon, and François Fillon.
 
-# Using Principal Component Analysis
+# Using Principal Component Analysis (PCA)
 
 In this section, we will perform PCA on the columns containing the results of the candidates for multiple elections and showcase some characteristics of the Parisian political landscape.
 
@@ -213,6 +213,83 @@ pcomps.euro |>
 * **Left-right shift:** The graph's orientation has flipped, which is perfectly normal in PCA, but the divide is still there. The left bloc (*Aubry*, *Toussaint*, *Glucksmann*) now appears on the left side, while the right/center bloc (*Bellamy*, *Hayer*, *Bardella*) is on the right.
 * **The Glucksmann/Toussaint convergence:** *Raphaël Glucksmann* (center-left) and *Marie Toussaint* (Greens) are roughly aligned, pointing to the same sociological space in the lower-left quadrant. In Paris, the moderate left and the ecologist electorate became quite similar in 2024, which is the strongest signal in this chart.
 * **A double polarization:** The second axis an extremes/moderates divide. On the upper half of the graph, we find the extremes (*Jordan Bardella* on the far right and *Manon Aubry* on the far left), while the more moderate candidates (*Nicolas Hayer* and *Raphaël Glucksmann*) are in the lower half. This suggests that in 2024, the political landscape was not only structured by the traditional left-right divide, but also by a divide between moderate and more extreme candidates.
+
+
+# Using Canonical Correlation Analysis (CCA)
+
+```{r}
+top2_municipales <- function(select_year) {
+  elections |>
+    filter(type == "municipales", year == select_year, round == 1) |>
+    select(constituency, data) |>
+    unnest(cols = c(data)) |>
+    pivot_longer(
+      cols = c(nb_exprim:last_col(), -nb_exprim),
+      names_to = "candidat", 
+      values_to = "voix",
+      values_drop_na = TRUE
+    ) |>
+    mutate(pct = voix / nb_exprim * 100) |>
+    group_by(constituency, num_bureau) |>
+    slice_max(order_by = pct, n = 2, with_ties = FALSE) |>
+    mutate(rang = row_number()) |>
+    ungroup() |>
+    select(constituency, num_bureau, rang, candidat, pct) |>
+    pivot_wider(
+      names_from = rang,
+      values_from = c(candidat, pct),
+      names_sep = "_"
+    )
+}
+
+top2_2008 <- top2_municipales(2008)
+top2_2020 <- top2_municipales(2020)
+
+# unique(c(top2_2008$candidat_1, top2_2008$candidat_2))
+
+#Dictionnaire politique de 2008
+dico_2008 <- tibble(
+  candidat = c(
+    # Guache 
+    "dagoma seybah", "wieviorka sylvie", "aidenbaum pierre", "bertinotti dominique", 
+    "cohen-solal lyne", "bravo jacques", "féraud rémi", "bloche patrick", 
+    "blumenthal michèle", "coumet jérôme", "castagnou pierre", "hidalgo anne", 
+    "lepetit annick", "vaillant daniel", "madec roger", "calandra frédérique", 
+    "lévy romain", "mano jean-yves", "charzat michel",
+    
+    # Droite
+    "legaret jean-françois", "lekieffre christophe", "roger vincent", "tiberi jean", 
+    "lecoq jean-pierre", "dati rachida", "lebel françois", "lellouche pierre", 
+    "burkli delphine", "carrère-gée marie-claire", "goujon philippe", "goasguen claude", 
+    "de panafieu françoise", "weill-raynal martine", "tissot claude-annick", 
+    "vasseur véronique", "alphand david", "decorte roxane", "giannesini jean-jacques",
+    
+    # Centre
+    "girard laurence", "rançon-cavenel heidi", "asmani lynda", "cavada jean-marie", 
+    "aziere eric", "de sarnez marielle", "delamare raoul",
+    
+    # Les écologistes
+    "boutault jacques", "dubarry véronique", "dutrey rené", "garel sylvain", "baupin denis"
+  ),
+  parti = c(
+    rep("Gauche", 19),
+    rep("Droite", 19),
+    rep("Centre", 7),
+    rep("Ecologiste", 5)
+  )
+)
+
+ideologie_muni_2008 <- top2_2008 |>
+  left_join(dico_2008, by = c("candidat_1" = "candidat")) |>
+  rename(parti_1 = parti) |>
+  left_join(dico_2008, by = c("candidat_2" = "candidat")) |>
+  rename(parti_2 = parti)
+
+head(ideologie_muni_2008)
+
+
+```
+
 
 # Clustering
 
