@@ -17,6 +17,8 @@ library(generics)
 library(broom)
 library(CCA)
 
+select <- dplyr::select
+
 ```
 
 # Our Dataset
@@ -45,7 +47,7 @@ format_names <- function(name) name |> str_replace_all("_", " ") |> str_to_title
 elections |>
   filter(type == "presidentielles", year == 2017, round == 1) |>
   pluck("data", 1) |>
-  dplyr::select(!c(geo_shape, geo_point_2d)) |>
+  select(!c(geo_shape, geo_point_2d)) |>
   rename_with(format_names) |>
   sample_n(5) |>
   gt() |>
@@ -54,6 +56,7 @@ elections |>
 ```
 
 At first glance, the most popular candidates among Parisians were Emmanuel Macron, Jean-Luc Mélenchon, and François Fillon.
+
 
 # Using Principal Component Analysis (PCA)
 
@@ -64,16 +67,18 @@ Since elections tend to have quite a lot of candidates obtaining only few votes,
 ```{r}
 #| label: pca
 
-candidates <- function(df) {
+candidates <- function(df, keep.id = FALSE) {
   n <- names(df)
   i2 <- length(n) - if ("geo_shape" %in% n) 2 else 0
-  df |> dplyr::select(all_of(16:i2)) |> dplyr::select(where(\(col) !all(col == 0)))
+  df |>
+    select(if (keep.id) 1 else NULL, all_of(16:i2)) |>
+    select(where(\(col) !all(col == 0)))
 }
 
 top_n <- function(df, n) {
   sums <- map_int(df, sum) |> sort(decreasing = TRUE)
   top <- names(sums[1:n]) |> discard(is.na)
-  dplyr::select(df, all_of(top))
+  select(df, all_of(top))
 }
 
 pcomps <- elections |>
@@ -100,7 +105,7 @@ Let us start by the most well known election: the presidential election. For the
 
 pcomps.pres |>
   mutate(cand = map(pco, \(x) names(x$center))) |>
-  dplyr::select(Year = year, Candidates = cand) |>
+  select(Year = year, Candidates = cand) |>
   gt()
 
 ```
@@ -222,11 +227,11 @@ pcomps.euro |>
 top2_municipales <- function(select_year) {
   elections |>
     filter(type == "municipales", year == select_year, round == 1) |>
-    dplyr::select(constituency, data) |>
+    select(constituency, data) |>
     unnest(cols = c(data)) |>
     pivot_longer(
       cols = c(nb_exprim:last_col(), -nb_exprim),
-      names_to = "candidat", 
+      names_to = "candidat",
       values_to = "voix",
       values_drop_na = TRUE
     ) |>
@@ -235,7 +240,7 @@ top2_municipales <- function(select_year) {
     slice_max(order_by = pct, n = 2, with_ties = FALSE) |>
     mutate(rang = row_number()) |>
     ungroup() |>
-    dplyr::select(constituency, num_bureau, rang, candidat, pct) |>
+    select(constituency, num_bureau, rang, candidat, pct) |>
     pivot_wider(
       names_from = rang,
       values_from = c(candidat, pct),
@@ -252,24 +257,24 @@ top_2020 <- top2_municipales(2020)
 #Dictionnaire politique de 2008
 dico_2008 <- tibble(
   candidat = c(
-    # Guache 
-    "dagoma seybah", "wieviorka sylvie", "aidenbaum pierre", "bertinotti dominique", 
-    "cohen-solal lyne", "bravo jacques", "féraud rémi", "bloche patrick", 
-    "blumenthal michèle", "coumet jérôme", "castagnou pierre", "hidalgo anne", 
-    "lepetit annick", "vaillant daniel", "madec roger", "calandra frédérique", 
+    # Gauche
+    "dagoma seybah", "wieviorka sylvie", "aidenbaum pierre", "bertinotti dominique",
+    "cohen-solal lyne", "bravo jacques", "féraud rémi", "bloche patrick",
+    "blumenthal michèle", "coumet jérôme", "castagnou pierre", "hidalgo anne",
+    "lepetit annick", "vaillant daniel", "madec roger", "calandra frédérique",
     "lévy romain", "mano jean-yves", "charzat michel",
-    
+
     # Droite
-    "legaret jean-françois", "lekieffre christophe", "roger vincent", "tiberi jean", 
-    "lecoq jean-pierre", "dati rachida", "lebel françois", "lellouche pierre", 
-    "burkli delphine", "carrère-gée marie-claire", "goujon philippe", "goasguen claude", 
-    "de panafieu françoise", "weill-raynal martine", "tissot claude-annick", 
+    "legaret jean-françois", "lekieffre christophe", "roger vincent", "tiberi jean",
+    "lecoq jean-pierre", "dati rachida", "lebel françois", "lellouche pierre",
+    "burkli delphine", "carrère-gée marie-claire", "goujon philippe", "goasguen claude",
+    "de panafieu françoise", "weill-raynal martine", "tissot claude-annick",
     "vasseur véronique", "alphand david", "decorte roxane", "giannesini jean-jacques",
-    
+
     # Centre
-    "girard laurence", "rançon-cavenel heidi", "asmani lynda", "cavada jean-marie", 
+    "girard laurence", "rançon-cavenel heidi", "asmani lynda", "cavada jean-marie",
     "aziere eric", "de sarnez marielle", "delamare raoul",
-    
+
     # Ecologiste
     "boutault jacques", "dubarry véronique", "dutrey rené", "garel sylvain", "baupin denis"
   ),
@@ -285,33 +290,33 @@ dico_2008 <- tibble(
 dico_2020 <- tibble(
   candidat = c(
     # Gauche
-    "m. weil ariel", "mme lemardeley marie-christine", "m. ngatcha arnaud", "mme cordebard alexandra", 
-    "m. vauglin françois", "m. grégoire emmanuel", "m. coumet jérôme", "mme petit carine", 
-    "mme toranian anouch", "mme taïeb karen", "m. lejoindre eric", "m. dagnaud françois", 
-    "m. pliez eric", "mme mazetier sandrine", "mme sebbah hanna", "mme marre béatrice", 
+    "m. weil ariel", "mme lemardeley marie-christine", "m. ngatcha arnaud", "mme cordebard alexandra",
+    "m. vauglin françois", "m. grégoire emmanuel", "m. coumet jérôme", "mme petit carine",
+    "mme toranian anouch", "mme taïeb karen", "m. lejoindre eric", "m. dagnaud françois",
+    "m. pliez eric", "mme mazetier sandrine", "mme sebbah hanna", "mme marre béatrice",
     "m. elalouf lucas", "m. dhorasoo vikash", "mme legrain sarah", "mme simonnet danielle",
 
     # Droite
-    "m. véron aurélien", "mme berthout florence", "m. lecoq jean-pierre", "mme dati rachida", 
-    "mme d'hauteserre jeanne", "mme segond sophie", "mme montandon valérie", "mme carrere-gee marie-claire", 
-    "m. goujon philippe", "mme evren agnès", "m. szpiner francis", "m. boulard geoffroy", 
-    "m. maurin pierre", "m. fort bertil", "mme garnier nelly", "m. olivier jean-baptiste", 
+    "m. véron aurélien", "mme berthout florence", "m. lecoq jean-pierre", "mme dati rachida",
+    "mme d'hauteserre jeanne", "mme segond sophie", "mme montandon valérie", "mme carrere-gee marie-claire",
+    "m. goujon philippe", "mme evren agnès", "m. szpiner francis", "m. boulard geoffroy",
+    "m. maurin pierre", "m. fort bertil", "mme garnier nelly", "m. olivier jean-baptiste",
     "m. granier rudolph", "m. didier françois-marie",
 
     # Centre
-    "m. rupin pacôme", "mme bürkli delphine", "mme ibled catherine", "m. bournazel pierre-yves", 
-    "m. gantzer gaspard", "mme hervieu céline", "m. missoffe alexandre", "m. amellal karim", 
-    "m. poitoux guillaume", "m. peng chang hua", "m. aziere éric", "mme buzyn agnès", 
+    "m. rupin pacôme", "mme bürkli delphine", "mme ibled catherine", "m. bournazel pierre-yves",
+    "m. gantzer gaspard", "mme hervieu céline", "m. missoffe alexandre", "m. amellal karim",
+    "m. poitoux guillaume", "m. peng chang hua", "m. aziere éric", "mme buzyn agnès",
     "mme toubiana marie", "m. rouxel olivier", "mme calandra frédérique",
 
     # Ecologiste
-    "mme rémy-leleu raphaëlle", "m. raifaud sylvain", "m. belliard david", "mme pierre-marie emmanuelle", 
+    "mme rémy-leleu raphaëlle", "m. raifaud sylvain", "m. belliard david", "mme pierre-marie emmanuelle",
     "mme souyris anne", "mme boux anne-claire", "m. lert dan", "mme guhl antoinette"
   ),
   parti = c(
-    rep("Gauche", 20), 
-    rep("Droite", 18), 
-    rep("Centre", 15), 
+    rep("Gauche", 20),
+    rep("Droite", 18),
+    rep("Centre", 15),
     rep("Ecologiste", 8)
   )
 )
@@ -331,29 +336,29 @@ ideologie_muni_2020 <- top_2020 |>
 ##head(ideologie_muni_2008)
 
 
-top1_2008 <- ideologie_muni_2008 |> dplyr::select(constituency, num_bureau, parti = parti_1, pct = pct_1)
-top2_2008 <- ideologie_muni_2008 |> dplyr::select(constituency, num_bureau, parti = parti_2, pct = pct_2)
+top1_2008 <- ideologie_muni_2008 |> select(constituency, num_bureau, parti = parti_1, pct = pct_1)
+top2_2008 <- ideologie_muni_2008 |> select(constituency, num_bureau, parti = parti_2, pct = pct_2)
 
-top1_2020 <- ideologie_muni_2020 |> dplyr::select(constituency, num_bureau, parti = parti_1, pct = pct_1)
-top2_2020 <- ideologie_muni_2020 |> dplyr::select(constituency, num_bureau, parti = parti_2, pct = pct_2)
+top1_2020 <- ideologie_muni_2020 |> select(constituency, num_bureau, parti = parti_1, pct = pct_1)
+top2_2020 <- ideologie_muni_2020 |> select(constituency, num_bureau, parti = parti_2, pct = pct_2)
 
 
 cca_2008 <- bind_rows(top1_2008, top2_2008) |>
-  filter(!is.na(parti)) |> 
+  filter(!is.na(parti)) |>
   pivot_wider(
-    names_from = parti, 
-    values_from = pct, 
-    values_fill = 0, 
+    names_from = parti,
+    values_from = pct,
+    values_fill = 0,
     values_fn = sum  # pour les doublons
   ) |>
   rename_with(~ paste0(.x, "_2008"), -c(constituency, num_bureau)) |>
   arrange(constituency, num_bureau)
 
 cca_2020 <- bind_rows(top1_2020, top2_2020) |>
-  filter(!is.na(parti)) |> 
+  filter(!is.na(parti)) |>
   pivot_wider(
-    names_from = parti, 
-    values_from = pct, 
+    names_from = parti,
+    values_from = pct,
     values_fill = 0,
     values_fn = sum  # pour les doublons
   ) |>
@@ -363,15 +368,15 @@ cca_2020 <- bind_rows(top1_2020, top2_2020) |>
 cca_finale <- inner_join(cca_2008, cca_2020, by = c("constituency", "num_bureau"))
 
 
-X <- cca_finale |> dplyr::select(ends_with("_2008")) |> as.matrix()
-Y <- cca_finale |> dplyr::select(ends_with("_2020")) |> as.matrix()
+X <- cca_finale |> select(ends_with("_2008")) |> as.matrix()
+Y <- cca_finale |> select(ends_with("_2020")) |> as.matrix()
 
 res.cca <- cancor(X, Y)
 
 print(res.cca$cor)
 
 res_cc <- cc(X, Y)
-plt.cc(res_cc, var.label = T)
+plt.var(res_cc, 1, 2, var.label = TRUE)
 
 ```
 
@@ -383,12 +388,17 @@ plt.cc(res_cc, var.label = T)
 ```{r}
 #| label: clustering-functions
 
-legi_data <- function(select_year) {
+collect_election <- function(type, year, round) {
   elections |>
-  filter(type == "legislatives", year == select_year, round == 1) |>
-  pluck("data") |>
-  bind_rows() |>
-  filter(id_bvote != "12-99") |> # remove the station for prisoners
+    filter(type == .env$type, year == .env$year, round == .env$round) |>
+    pluck("data") |>
+    bind_rows() |>
+    filter(id_bvote != "12-99") |> # remove the station for prisoners
+    mutate(across(where(is.numeric), \(x) replace_na(x, 0)))
+}
+
+legi_data <- function(select_year) {
+  collect_election("legislatives", select_year, 1) |>
   rowwise() |>
   mutate(
     turnout = nb_votant / nb_inscr * 100,
@@ -400,7 +410,7 @@ legi_data <- function(select_year) {
     gap = best - second,
     .keep = "unused"
   ) |>
-  dplyr::select(-tmp)
+  select(-tmp)
 }
 
 add_geo <- function(df) {
@@ -410,17 +420,20 @@ add_geo <- function(df) {
   geo <- elections |>
     filter(type %in% c("presidentielles", "europeennes"), year == y, round == 1) |>
     pluck("data", 1) |>
-    dplyr::select(id_bvote, geo_shape, geo_point_2d)
+    select(id_bvote, geo_shape, geo_point_2d)
 
   left_join(df, geo, by = "id_bvote")
 }
 
 cluster_analysis <- function(df) {
   set.seed(22)
-  df <- kmeans(df |> dplyr::select(gap, blanc) |> scale(), centers = 3, nstart = 32L) |>
+  df <- df |>
+    select(gap, blanc) |>
+    scale() |>
+    kmeans(centers = 3, nstart = 32L) |>
     augment(df)
 
-  p1 <- ggplot(df, aes(x = gap, y = blanc, color = .cluster)) +
+  scatter <- ggplot(df, aes(x = gap, y = blanc, color = .cluster)) +
     geom_point() +
     labs(
       title = "Based on: Competitiveness (Gap) and Protest Vote (Blank)",
@@ -430,7 +443,7 @@ cluster_analysis <- function(df) {
     ) +
     theme_minimal()
 
-  p2 <- df |>
+  map <- df |>
     add_geo() |>
     st_as_sf() |>
     ggplot(aes(fill = .cluster)) +
@@ -441,8 +454,8 @@ cluster_analysis <- function(df) {
     ) +
     theme_void()
 
-  print(p2)
-  print(p1)
+  print(map)
+  print(scatter)
 }
 
 ```
@@ -450,11 +463,14 @@ cluster_analysis <- function(df) {
 ### 2017
 
 ```{r}
+#| label: clustering-2017
+#| lightbox:
+#|  group: clustering-2017
 
-legi.2017 <- legi_data(2017)
-cluster_analysis(legi.2017)
+cluster_analysis(legi_data(2017))
 
 ```
+
 To better understand the voting dynamics during the Legislative elections, we clustered the polling stations based on two behavioral variables: the gap between the first and second candidate and the protest vote. The K-means algorithm naturally identified three distinct geographical and behavioral profiles:
 
 * **Cluster 1 (Red) The "Macron Wave" Strongholds :** On the scatter plot, this group is distinguished by massive leads (Gap > 20%) and low blank votes. However, on the 2017 map, this cluster overwhelmingly dominates the center and heart of Paris. This perfectly illustrates the landslide victory of "La République En Marche" (LREM) following Emmanuel Macron's election. His candidates won crushing, monolithic victories in districts that were historically divided, effectively erasing the old Left/Right divide in the capital's center.
@@ -466,11 +482,14 @@ To better understand the voting dynamics during the Legislative elections, we cl
 ### 2024
 
 ```{r}
+#| label: clustering-2024
+#| lightbox:
+#|  group: clustering-2024
 
-legi.2024 <- legi_data(2024)
-cluster_analysis(legi.2024)
+cluster_analysis(legi_data(2024))
 
 ```
+
 Applying the same K-means clustering algorithm to the 2024 Legislative elections reveals a radically different electoral geography. At that time, the variables of competitiveness (Gap) and protest voting (Blank) drew the following landscape:
 
 * **Cluster 1 (Red)  The Monolithic Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 50%) and a low rate of blank votes. Geographically, this cluster dominates the 5th, 8th, 10th, 11th and 16th arrondissements. This perfectly aligns with Parisian political sociology. These traditional right-wing strongholds tend to vote much more monolithically, resulting in massive, decisive victories for the front-runner and virtually no protest voting.
