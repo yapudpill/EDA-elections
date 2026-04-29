@@ -40,7 +40,7 @@ standardize <- function(df) {
   df <- df |>
     rename_with(str_to_lower) |>
     rename_with(\(old) coalesce(cols_mapping[old], old)) |>
-    select(!any_of(unused_cols))
+    dplyr::select(!any_of(unused_cols))
 
   if ("nb_blanc" %in% names(df)) {
     df <- df |>
@@ -91,8 +91,8 @@ legi_muni <- mutate(legi_muni, data = map(path, load_excel)) |> suppressWarnings
 
 # group all the election in a data frame and clear variables
 elections <- bind_rows(
-  pres_euro |> select(!c(dataset, path)),
-  legi_muni |> select(!c(dataset, path, attachement))
+  pres_euro |> dplyr::select(!c(dataset, path)),
+  legi_muni |> dplyr::select(!c(dataset, path, attachement))
 ) |> relocate(constituency, .before = data)
 
 ```
