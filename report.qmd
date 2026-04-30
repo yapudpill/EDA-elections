@@ -462,6 +462,8 @@ cluster_analysis <- function(df) {
 
 ### 2017
 
+To better understand the voting dynamics during the Legislative elections, we clustered the polling stations based on two behavioral variables: the gap between the first and second candidate and the protest vote. The K-means algorithm naturally identified three distinct geographical and behavioral profiles:
+
 ```{r}
 #| label: clustering-2017
 #| lightbox:
@@ -471,15 +473,15 @@ cluster_analysis(legi_data(2017))
 
 ```
 
-To better understand the voting dynamics during the Legislative elections, we clustered the polling stations based on two behavioral variables: the gap between the first and second candidate and the protest vote. The K-means algorithm naturally identified three distinct geographical and behavioral profiles:
+* **Cluster 1 (Red) The "Macron Wave" Strongholds:** On the scatter plot, this group is distinguished by massive leads (Gap > 20%) and low blank votes. However, on the 2017 map, this cluster overwhelmingly dominates the center and heart of Paris. This illustrates the landslide victory of "La République En Marche" (LREM) following Emmanuel Macron's election. His candidates won monolithic victories in quite a lot of districts, surpassing the Left/Right divide in the capital's center.
 
-* **Cluster 1 (Red) The "Macron Wave" Strongholds :** On the scatter plot, this group is distinguished by massive leads (Gap > 20%) and low blank votes. However, on the 2017 map, this cluster overwhelmingly dominates the center and heart of Paris. This perfectly illustrates the landslide victory of "La République En Marche" (LREM) following Emmanuel Macron's election. His candidates won crushing, monolithic victories in districts that were historically divided, effectively erasing the old Left/Right divide in the capital's center.
+* **Cluster 2 (Green) Peripheral Uncertainty Zones:** Identified by high blank and null votes (above 1.5%), this cluster is found primarily on the northern, eastern, and southern fringes of Paris. In the 2017 context, following the recessing of traditional parties (PS and LR), a portion of the electorate in felt left without a strong local political alternative and chose blank voting to express their uncertainty.
 
-* **Cluster 2 (Green) Peripheral Protest Zones :** Identified by high blank and null votes (above 1.5%), this cluster is found primarily on the northern, eastern, and southern fringes of Paris. In the 2017 context, following the collapse of traditional parties (PS and LR), a portion of the electorate in working-class neighborhoods felt left without a strong local political alternative and chose blank voting to express their rejection of the new centrist dynamic.
-
-* **Cluster 3 (Blue) Pockets of Resistance (Battlegrounds) :** Characterized by very tight races (low Gap, under 18%), this cluster was pushed to the geographical extremities of the capital: the far West (16th arrondissement) and fragments of the East. In 2017, these were the only areas where real competition persisted. They represent the final bastions of traditional parties (the historic Right in the West, the Left in the East) fighting fiercely for survival against Macronist candidates.
+* **Cluster 3 (Blue) Pockets of Resistance (Battlegrounds):** Characterized by very tight races (low Gap, under 18%), this cluster was pushed to the geographical extremities of the capital: the far West (16th arrondissement) and fragments of the East. In 2017, these were the only areas where real competition persisted. They represent the final bastions of traditional parties (the historic Right in the West, the Left in the East) fighting fiercely against macronist candidates.
 
 ### 2024
+
+Applying the same K-means clustering algorithm to the 2024 Legislative elections reveals a radically different electoral geography. At that time, the variables of competitiveness (Gap) and protest voting (Blank) drew the following landscape:
 
 ```{r}
 #| label: clustering-2024
@@ -490,13 +492,11 @@ cluster_analysis(legi_data(2024))
 
 ```
 
-Applying the same K-means clustering algorithm to the 2024 Legislative elections reveals a radically different electoral geography. At that time, the variables of competitiveness (Gap) and protest voting (Blank) drew the following landscape:
+* **Cluster 1 (Red) The Monolithic Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 50%) and a low rate of blank votes. Geographically, this cluster dominates the 5th, 8th, 10th, 11th and 16th arrondissements. These are mostly neighborhoods with tight results in 2017 (blue cluster) that have returned to their traditional political allegiances in 2024 after the dissolution of the national assembly by president Macron.
 
-* **Cluster 1 (Red)  The Monolithic Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 50%) and a low rate of blank votes. Geographically, this cluster dominates the 5th, 8th, 10th, 11th and 16th arrondissements. This perfectly aligns with Parisian political sociology. These traditional right-wing strongholds tend to vote much more monolithically, resulting in massive, decisive victories for the front-runner and virtually no protest voting.
+* **Cluster 2 (Green) Uncertain Areas:** This cluster is primarily isolated by its high y-axis values (Blank & Null votes above 1.5%), regardless of the gap. As in 2017, these stations are mostly scattered on the outer edges of the capital, but they are more numerous and tend to spread inwards. This highlights specific areas where a significant portion of the electorate felt unrepresented by the local candidate offerings, choosing instead to cast a blank ballot to express dissatisfaction of the current political instability.
 
-* **Cluster 2 (Green)  The Protest Zones:** This cluster is primarily isolated by its high y-axis values (Blank & Null votes above 1.5%), regardless of the gap. On the map, these zones are scattered, notably appearing on the outer edges of the capital and slicing through various districts. This highlights specific areas where a significant portion of the electorate felt unrepresented by the polarizing local candidate offerings, choosing instead to cast a blank ballot to express their political dissatisfaction.
-
-* **Cluster 3 (Blue)  The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a massive central and center-western portion of Paris. These areas represent the true political battlegrounds of the capital. With a diverse electorate and the strong presence of competing political blocs (often involving centrist candidates battling the Left or Right), these districts experience fierce political competition, resulting in highly contested races where every vote counts.
+* **Cluster 3 (Blue) The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a massive central and center-western portion of Paris. These areas represent the political battlegrounds of the capital. It is interesting to note that these parts of Paris where previously the ones with not much competition. This new dynamic is likely due to people turning back from Macons's party after he dissolved the national assembly which is a very unpopular move in France.
 
 ### 2017 vs 2024
 
