@@ -381,6 +381,12 @@ plt.var(res_cc, 1, 2, var.label = TRUE)
 ```
 
 
+The horizontal axis reveals a perfect geographic continuity for the main political blocks. Right_2008 and Right_2020 perfectly overlap on the far left of the axis, just as Left_2008 and Left_2020 overlap on the far right. This demonstrates strong spatial inertia: the historical strongholds of both the Left and the Right remained strictly unchanged over 12 years.
+
+While the Left/Right axis remained frozen, the "Center" experienced a total geographic shift. Centre_2008 points upwards, whereas Centre_2020 points downwards. This opposition proves that the 2020 centrist electorate was built in completely different neighborhoods compared to the 2008 centrist base. The label remained, but the voters changed.
+
+Both Ecologiste_2008 and Ecologiste_2020 are positioned on the right side of the chart, sharing a close angle with the Left block. This confirms a persistent geographic correlation between Green voters and Left-wing voters, sharing very similar electoral zones.
+
 # Clustering
 
 ## Analyzing the Legislative Electoral Dynamics
