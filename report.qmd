@@ -67,18 +67,18 @@ Since elections tend to have quite a lot of candidates obtaining only few votes,
 ```{r}
 #| label: pca
 
-candidates <- function(df, keep.id = FALSE) {
+candidates <- function(df, keep = NULL) {
   n <- names(df)
   i2 <- length(n) - if ("geo_shape" %in% n) 2 else 0
   df |>
-    select(if (keep.id) 1 else NULL, all_of(16:i2)) |>
+    select({{keep}}, all_of(16:i2)) |>
     select(where(\(col) !all(col == 0)))
 }
 
-top_n <- function(df, n) {
-  sums <- map_int(df, sum) |> sort(decreasing = TRUE)
+top_n <- function(df, n, start = 1) {
+  sums <- df |> select(all_of(start:last_col())) |> map_int(sum) |> sort(decreasing = TRUE)
   top <- names(sums[1:n]) |> discard(is.na)
-  select(df, all_of(top))
+  select(df, 1:(start - 1), all_of(top))
 }
 
 pcomps <- elections |>
@@ -516,45 +516,59 @@ Macron's arrival in 2017 acted as a "statistical anomaly," creating a massive ce
 ```{r}
 #| label: lin-reg
 
-explanatory1 <- collect_election("presidentielles", 2022, 1) |>
-  candidates(keep.id = TRUE) |>
-  column_to_rownames("id_bvote") |>
-  as.matrix()
-
-explanatory2 <- collect_election("presidentielles", 2017, 1) |>
-  candidates(keep.id = TRUE) |>
-  column_to_rownames("id_bvote") |>
-  as.matrix()
-
 to_explain <- elections |>
-    filter(type == "legislatives", year == 2024, round == 1) |>
-    pluck("data") |>
-    map(function(x) {
-      x |>
-      filter(!str_ends(id_bvote, "99")) |> # remove the station for prisoners
-      candidates(keep.id = TRUE) |>
-      column_to_rownames("id_bvote") |>
-      top_n(1) |>
-      as.matrix()
+  filter(type == "legislatives", year == 2024, round == 1) |>
+  pluck("data") |>
+  map(function(x) {
+    x |>
+    filter(!str_ends(id_bvote, "99")) |> # remove the station for prisoners
+    candidates(keep = c(id_bvote, num_arrond, num_circ)) |>
+    top_n(1, start = 4)
+  })
+
+explicative_elections <- elections |>
+  filter(year >= 2017, round == 1, !(type == "legislatives" & year == 2024)) |>
+  select(type, year) |>
+  unique()
+
+regressions <- to_explain |>
+  map(function(to_exp) {
+    # Return the list of the six regressions using explicative_elections as explanatory variables
+
+    explicative_elections |>
+    pmap(function(type, year) {
+      # Compute the linear regression of df using the election (type, year)
+
+      design_matrix <- if (type == "presidentielles" || type == "europeennes") {
+        elections |>
+        filter(type == .env$type, year == .env$year, round == 1) |>
+        pluck("data", 1) |>
+        candidates(keep = id_bvote) |>
+        inner_join(to_exp, by = "id_bvote") |>
+        select(-num_circ, -num_arrond) |>
+        column_to_rownames("id_bvote")
+      } else if (type == "legislatives") {
+        elections |>
+        filter(type == "legislatives", year == .env$year, round == 1, constituency == pull(to_exp, num_circ)[1]) |>
+        pluck("data", 1) |>
+        candidates(keep = id_bvote) |>
+        inner_join(to_exp, by = "id_bvote") |>
+        select(-num_circ, -num_arrond) |>
+        column_to_rownames("id_bvote")
+      } else { # municipales
+        collect_election("municipales", year, 1) |>
+        candidates(keep = c(id_bvote)) |>
+        inner_join(to_exp, by = c("id_bvote")) |>
+        select(-num_circ, -num_arrond) |>
+        column_to_rownames("id_bvote")
+      }
+
+      #lm(data = design_matrix, formula = str_glue("`{names(to_exp)[4]}` ~ ."))
     })
-
-test <- map(to_explain, \(x) {
-  common1 <- intersect(row.names(x), row.names(explanatory1))
-  lm1 <- lm(x[common1,] ~ explanatory1[common1,])
-
-  common2 <- intersect(row.names(x), row.names(explanatory2))
-  lm2 <- lm(x[common2,] ~ explanatory2[common2,])
-
-  list(
-    model_2024 = lm1,
-    model_2017 = lm2
-  )
-})
-
-summaries <- map(test, \(x) map(x, summary))
-
-map_dbl(summaries, \(x) x$model_2024$r.squared - x$model_2017$r.squared)
+  })
 
 ```
 
 The goal of this section is to explain the results of the 2024 legislative election using the previous elections as explanatory variables. We therefore collect the data for all elections since 2017, extract the candidates' results, and rename the columns to reflect the election they correspond to.
+
+We chose to only try to explain the results of the winner of each constituency. We also focus on the first rounds because they are more informative about the underlying political dynamics: it would be strange to try to explain the results of a left-wing using the results of a second round in which the left-wing candidate is not even present.
