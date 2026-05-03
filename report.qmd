@@ -78,7 +78,7 @@ candidates <- function(df, keep = NULL) {
 top_n <- function(df, n, start = 1) {
   sums <- df |> select(all_of(start:last_col())) |> map_int(sum) |> sort(decreasing = TRUE)
   top <- names(sums[1:n]) |> discard(is.na)
-  select(df, 1:(start - 1), all_of(top))
+  select(df, seq_len(start - 1), all_of(top))
 }
 
 pcomps <- elections |>
@@ -562,11 +562,15 @@ summaries <- map(regressions, \(x) map(x, summary))
 
 ```
 
+The goal of this section is to explain the results of the 2024 legislative election using the previous elections (2017-2024) as explanatory variables. We chose to only try to explain the results of the winner of each constituency because otherwise there would be too many variables (there are already 18 winners). We also focus on explaining these results using the first round of each explanatory election because they are more informative about the underlying political dynamics: it would be strange to try to explain the results of a left-wing candidate using the results of a second round in which the left-wing candidate is not even present.
+
+We therefore collect the available data for elections since 2017, extract the candidates' results and run a linear regression for each winner of the 2024 legislative election using the results of the previous elections as explanatory variables. The following bar charts summarize the adjusted R-squared of each regression, which gives us an idea of how well each previous election explains the 2024 results.
+
 ```{r}
 #| label: lin-reg-bar
 #| lightbox:
 #|  group: lin-reg-bar
-#| layout-ncol: 3
+#| layout-ncol: 4
 
 summaries |>
   imap(function(regs, name) {
@@ -575,13 +579,42 @@ summaries |>
     mutate(fill = r_squared == max(r_squared)) |>
     ggplot(aes(x = election, y = r_squared, fill = fill)) +
     geom_col() +
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
-    labs(x = NULL, title = str_glue("Adjusted R-squared for {format_names(name)}"))
+    geom_text(aes(label = round(r_squared, 3)), vjust = -0.5) +
+    labs(x = NULL, title = str_glue("Adjusted R-squared for {format_names(name)}")) +
+    scale_fill_manual(values = c("lightgrey", "steelblue"), guide = "none") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   }) |>
   walk(print)
 
 ```
 
-The goal of this section is to explain the results of the 2024 legislative election using the previous elections as explanatory variables. We therefore collect the data for all elections since 2017, extract the candidates' results, and rename the columns to reflect the election they correspond to.
+The results show that for most candidates, the previous european election (2024) is the best explanatory variable, which is not very surprising since it is the most recent election. However, for some candidates, other elections are better predictors of their 2024 performance. For example, the 2022 presidential election is a better predictor for the first and last candidate. This could be due to the fact that these candidates were already present previously and have maintained an electorate since then.
 
-We chose to only try to explain the results of the winner of each constituency. We also focus on the first rounds because they are more informative about the underlying political dynamics: it would be strange to try to explain the results of a left-wing using the results of a second round in which the left-wing candidate is not even present.
+Let us now have a closer look to the regression done using the 2024 european election as explanatory variable, since it is the best predictor for most candidates. The following graph summarizes the coefficients of these regressions for each candidate:
+
+```{r}
+#| label: lin-reg-coef
+#| lightbox:
+#|  group: lin-reg-coef
+#| layout-ncol: 4
+
+summaries |>
+  map("europeennes_2024") |>
+  imap(function(reg, name) {
+    reg$coefficients[-1, "Estimate"] |>
+    enframe(name = "candidate", value = "coefficient") |>
+    mutate(fill = coefficient == max(coefficient)) |>
+    ggplot(aes(x = format_names(candidate), y = coefficient, fill = fill)) +
+    geom_col() +
+    # geom_text(aes(label = round(coefficient, 3)), vjust = -0.5) +
+    labs(x = NULL, title = str_glue("Coefficients for {format_names(name)}")) +
+    scale_fill_manual(values = c("lightgrey", "steelblue"), guide = "none") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+  }) |>
+  walk(print)
+
+```
+
+The coefficients show that for most candidates, the most important explanatory variable is the result of the candidate with the same political affiliation in the 2024 european election. For example, for *Sandrine Rousseau* (ninth candidate), the coefficient of the *Lorys Elmayan* variable is much higher than the others, which suggests that *Rousseau's* performance in the 2024 legislative election is strongly correlated with the performance of *Elmayan* in the 2024 european election. This is consistent with the fact that both candidates are from the same political family (ecologists) and therefore likely share a similar electorate.
