@@ -516,7 +516,12 @@ Macron's arrival in 2017 acted as a "statistical anomaly," creating a massive ce
 ```{r}
 #| label: lin-reg
 
-explanatory <- collect_election("presidentielles", 2022, 1) |>
+explanatory1 <- collect_election("presidentielles", 2022, 1) |>
+  candidates(keep.id = TRUE) |>
+  column_to_rownames("id_bvote") |>
+  as.matrix()
+
+explanatory2 <- collect_election("presidentielles", 2017, 1) |>
   candidates(keep.id = TRUE) |>
   column_to_rownames("id_bvote") |>
   as.matrix()
@@ -534,13 +539,21 @@ to_explain <- elections |>
     })
 
 test <- map(to_explain, \(x) {
-  common <- intersect(row.names(x), row.names(explanatory))
-  lm(x[common,] ~ explanatory[common,])
+  common1 <- intersect(row.names(x), row.names(explanatory1))
+  lm1 <- lm(x[common1,] ~ explanatory1[common1,])
+
+  common2 <- intersect(row.names(x), row.names(explanatory2))
+  lm2 <- lm(x[common2,] ~ explanatory2[common2,])
+
+  list(
+    model_2024 = lm1,
+    model_2017 = lm2
+  )
 })
 
-summaries <- map(test, summary)
+summaries <- map(test, \(x) map(x, summary))
 
-summaries
+map_dbl(summaries, \(x) x$model_2024$r.squared - x$model_2017$r.squared)
 
 ```
 
