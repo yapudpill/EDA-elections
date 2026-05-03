@@ -373,7 +373,7 @@ Y <- cca_finale |> select(ends_with("_2020")) |> as.matrix()
 
 res.cca <- cancor(X, Y)
 
-print(res.cca$cor)
+#print(res.cca$cor)
 
 res_cc <- cc(X, Y)
 plt.var(res_cc, 1, 2, var.label = TRUE)
@@ -381,7 +381,7 @@ plt.var(res_cc, 1, 2, var.label = TRUE)
 ```
 
 
-The horizontal axis reveals a perfect geographic continuity for the main political blocks. Right_2008 and Right_2020 perfectly overlap on the far left of the axis, just as Left_2008 and Left_2020 overlap on the far right. This demonstrates strong spatial inertia: the historical strongholds of both the Left and the Right remained strictly unchanged over 12 years.
+Right_2008 and Right_2020 are basically right on top of each other on the far left, showing stability for the Right. However, while Left_2008 is touching the right edge, Left_2020 has moved closer to the center of the circle. Which means that while the Left is still a major political power, its geographic hold became slightly less significant and more spread out in 2020 than it was in 2008.
 
 While the Left/Right axis remained frozen, the "Center" experienced a total geographic shift. Centre_2008 points upwards, whereas Centre_2020 points downwards. This opposition proves that the 2020 centrist electorate was built in completely different neighborhoods compared to the 2008 centrist base. The label remained, but the voters changed.
 
