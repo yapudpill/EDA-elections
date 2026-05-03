@@ -559,13 +559,20 @@ regressions <- to_explain |>
         collect_election("municipales", year, 1) |>
         candidates(keep = c(id_bvote)) |>
         inner_join(to_exp, by = c("id_bvote")) |>
+        select(where(\(col) !all(col == 0))) |>
         select(-num_circ, -num_arrond) |>
         column_to_rownames("id_bvote")
       }
 
-      #lm(data = design_matrix, formula = str_glue("`{names(to_exp)[4]}` ~ ."))
+      if (names(to_exp)[4] %in% names(design_matrix)) {
+        lm(data = design_matrix, formula = str_glue("`{names(to_exp)[4]}` ~ ."))
+      } else {
+        lm(data = design_matrix, formula = str_glue("`{names(to_exp)[4]}.y` ~ ."))
+      }
     })
   })
+
+summaries <- map(regressions, \(x) map(x, summary))
 
 ```
 
