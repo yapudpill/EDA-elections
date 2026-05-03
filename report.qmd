@@ -522,57 +522,58 @@ to_explain <- elections |>
   map(function(x) {
     x |>
     filter(!str_ends(id_bvote, "99")) |> # remove the station for prisoners
-    candidates(keep = c(id_bvote, num_arrond, num_circ)) |>
-    top_n(1, start = 4)
+    candidates(keep = id_bvote) |>
+    top_n(1, start = 2)
   })
+# misspelled name
+to_explain[[1]] <- rename(to_explain[[1]], `maillard sylvain` = `7lard sylvain`)
+names(to_explain) <- map_chr(to_explain, \(x) names(x)[2])
 
 explicative_elections <- elections |>
   filter(year >= 2017, round == 1, !(type == "legislatives" & year == 2024)) |>
-  select(type, year) |>
+  select(type, year, round) |>
   unique()
 
 regressions <- to_explain |>
   map(function(to_exp) {
+    to_exp <- to_exp |> rename_with(\(x) str_c(x, "_exp"), .cols = -id_bvote)
+
     # Return the list of the six regressions using explicative_elections as explanatory variables
-
     explicative_elections |>
-    pmap(function(type, year) {
-      # Compute the linear regression of df using the election (type, year)
-
-      design_matrix <- if (type == "presidentielles" || type == "europeennes") {
-        elections |>
-        filter(type == .env$type, year == .env$year, round == 1) |>
-        pluck("data", 1) |>
+    pmap(function(type, year, round) {
+      # Compute the linear regression of df using the election (type, year, round)
+      collect_election(type, year, round) |>
+        inner_join(x = to_exp, multiple = "any", by = "id_bvote") |>
+        relocate(2, .after = nb_exprim) |>
         candidates(keep = id_bvote) |>
-        inner_join(to_exp, by = "id_bvote") |>
-        select(-num_circ, -num_arrond) |>
-        column_to_rownames("id_bvote")
-      } else if (type == "legislatives") {
-        elections |>
-        filter(type == "legislatives", year == .env$year, round == 1, constituency == pull(to_exp, num_circ)[1]) |>
-        pluck("data", 1) |>
-        candidates(keep = id_bvote) |>
-        inner_join(to_exp, by = "id_bvote") |>
-        select(-num_circ, -num_arrond) |>
-        column_to_rownames("id_bvote")
-      } else { # municipales
-        collect_election("municipales", year, 1) |>
-        candidates(keep = c(id_bvote)) |>
-        inner_join(to_exp, by = c("id_bvote")) |>
-        select(where(\(col) !all(col == 0))) |>
-        select(-num_circ, -num_arrond) |>
-        column_to_rownames("id_bvote")
-      }
+        column_to_rownames("id_bvote") |>
+        lm(formula = str_glue("`{names(to_exp)[2]}` ~ ."))
+    }) |>
+    set_names(str_glue_data(explicative_elections, "{type}_{year}"))
 
-      if (names(to_exp)[4] %in% names(design_matrix)) {
-        lm(data = design_matrix, formula = str_glue("`{names(to_exp)[4]}` ~ ."))
-      } else {
-        lm(data = design_matrix, formula = str_glue("`{names(to_exp)[4]}.y` ~ ."))
-      }
-    })
   })
 
 summaries <- map(regressions, \(x) map(x, summary))
+
+```
+
+```{r}
+#| label: lin-reg-bar
+#| lightbox:
+#|  group: lin-reg-bar
+
+summaries |>
+  map(function(regs) {
+    map_dbl(regs, \(x) x$adj.r.squared) |>
+    enframe(name = "election", value = "r_squared") |>
+    mutate(fill = r_squared == max(r_squared)) |>
+    ggplot(aes(x = election, y = r_squared, fill = fill)) +
+    geom_col() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+    labs(x = NULL)
+  }) |>
+  walk(print)
+  #wrap_plots(guides = "collect", axes = "collect_y", ncol = 2)
 
 ```
 
