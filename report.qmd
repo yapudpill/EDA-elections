@@ -399,7 +399,7 @@ collect_election <- function(type, year, round) {
     filter(type == .env$type, year == .env$year, round == .env$round) |>
     pluck("data") |>
     bind_rows() |>
-    filter(id_bvote != "12-99") |> # remove the station for prisoners
+    filter(!str_ends(id_bvote, "99")) |> # remove the station for prisoners
     mutate(across(where(is.numeric), \(x) replace_na(x, 0)))
 }
 
@@ -513,4 +513,35 @@ Macron's arrival in 2017 acted as a "statistical anomaly," creating a massive ce
 
 # Linear regression
 
-TODO
+```{r}
+#| label: lin-reg
+
+explanatory <- collect_election("presidentielles", 2022, 1) |>
+  candidates(keep.id = TRUE) |>
+  column_to_rownames("id_bvote") |>
+  as.matrix()
+
+to_explain <- elections |>
+    filter(type == "legislatives", year == 2024, round == 1) |>
+    pluck("data") |>
+    map(function(x) {
+      x |>
+      filter(!str_ends(id_bvote, "99")) |> # remove the station for prisoners
+      candidates(keep.id = TRUE) |>
+      column_to_rownames("id_bvote") |>
+      top_n(1) |>
+      as.matrix()
+    })
+
+test <- map(to_explain, \(x) {
+  common <- intersect(row.names(x), row.names(explanatory))
+  lm(x[common,] ~ explanatory[common,])
+})
+
+summaries <- map(test, summary)
+
+summaries
+
+```
+
+The goal of this section is to explain the results of the 2024 legislative election using the previous elections as explanatory variables. We therefore collect the data for all elections since 2017, extract the candidates' results, and rename the columns to reflect the election they correspond to.

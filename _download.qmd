@@ -107,7 +107,7 @@ legi_muni <- to_dl |>
   ) |>
   ungroup()
 
-pwalk(dplyr::select(legi_muni, dataset, attachement, path), dl_excel)
+pwalk(select(legi_muni, dataset, attachement, path), dl_excel)
 
 ```
 
