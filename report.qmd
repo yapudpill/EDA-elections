@@ -127,6 +127,8 @@ In every PCA, the first two principal axes explain at least 75% of the total var
 #| label: pca-pres-var
 #| lightbox:
 #|  group: pca-pres-var
+#| layout-ncol: 3
+
 
 pcomps.pres |>
   pmap(function(pco, title, ...) fviz_pca_var(pco, col.var = "royalblue", repel = TRUE, title = title)) |>
@@ -194,6 +196,7 @@ For a more compact view of the results, we focus on the biplots instead of the c
 #| label: pca-euro-biplot
 #| lightbox:
 #|  group: pca-euro-biplot
+#| layout-ncol: 2
 
 arrond_groups <- character()
 arrond_groups[c(7, 8, 16, 17)] <- "west (7, 8, 16, 17)"
@@ -474,6 +477,7 @@ To better understand the voting dynamics during the Legislative elections, we cl
 #| label: clustering-2017
 #| lightbox:
 #|  group: clustering-2017
+#| layout-ncol: 2
 
 cluster_analysis(legi_data(2017))
 
@@ -493,6 +497,7 @@ Applying the same K-means clustering algorithm to the 2024 Legislative elections
 #| label: clustering-2024
 #| lightbox:
 #|  group: clustering-2024
+#| layout-ncol: 2
 
 cluster_analysis(legi_data(2024))
 
@@ -561,19 +566,19 @@ summaries <- map(regressions, \(x) map(x, summary))
 #| label: lin-reg-bar
 #| lightbox:
 #|  group: lin-reg-bar
+#| layout-ncol: 3
 
 summaries |>
-  map(function(regs) {
+  imap(function(regs, name) {
     map_dbl(regs, \(x) x$adj.r.squared) |>
     enframe(name = "election", value = "r_squared") |>
     mutate(fill = r_squared == max(r_squared)) |>
     ggplot(aes(x = election, y = r_squared, fill = fill)) +
     geom_col() +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
-    labs(x = NULL)
+    labs(x = NULL, title = str_glue("Adjusted R-squared for {format_names(name)}"))
   }) |>
   walk(print)
-  #wrap_plots(guides = "collect", axes = "collect_y", ncol = 2)
 
 ```
 
