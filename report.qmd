@@ -149,7 +149,7 @@ pcomps.pres |>
 * **The left bloc:** On the opposite side of the *Pécresse*/*Zemmour* cluster, *Jean-Luc Mélenchon* stands largely alone and dominates his half of the graph. This is consistent with support coming from more working-class and diverse eastern districts.
 * **Macron's shift to the right:** Compared with the previous election, *Emmanuel Macron* now leans toward right-wing candidates. This suggests that perceptions of his politics shifted after his first term, and that his position in 2022 appeared more right-leaning than it did in 2017.
 
-Since most of the political dynamic appears to be captured by the first principal axis, we now map each polling station according to its position on that axis.
+Since most of the political dynamic appears to be captured by the first principal axis, we now map each polling station according to its position on that axis:
 
 ```{r}
 #| label: choropleth
@@ -162,7 +162,8 @@ pcomps.pres |>
       ggplot(aes(fill = PC1)) +
       geom_sf() +
       scale_fill_gradient2(low = "blue", high = "red") +
-      labs(title = title)
+      labs(title = title) +
+      theme_void()
   }) |>
   wrap_plots(ncol = 1)
 
@@ -226,163 +227,57 @@ pcomps.euro |>
 
 # Using Canonical Correlation Analysis (CCA)
 
+This time we will focus on the municipal elections of 2008 and 2020. We will extract the top 2 candidates of each polling station for both elections, assign them a political label (Left, Right, Center, Ecologist) and then run a CCA to analyze the correlation between the two elections. The goal is to see how the political landscape of Paris evolved between 2008 and 2020, and whether the results of a political bloc in 2008 is indeed correlated with the results of the same bloc in 2020.
+
+{{< include _parties.qmd >}}
+
 ```{r}
+#| label: cca
+
 top2_municipales <- function(select_year) {
   elections |>
     filter(type == "municipales", year == select_year, round == 1) |>
-    select(constituency, data) |>
-    unnest(cols = c(data)) |>
-    pivot_longer(
-      cols = c(nb_exprim:last_col(), -nb_exprim),
-      names_to = "candidat",
-      values_to = "voix",
-      values_drop_na = TRUE
-    ) |>
-    mutate(pct = voix / nb_exprim * 100) |>
-    group_by(constituency, num_bureau) |>
-    slice_max(order_by = pct, n = 2, with_ties = FALSE) |>
-    mutate(rang = row_number()) |>
-    ungroup() |>
-    select(constituency, num_bureau, rang, candidat, pct) |>
-    pivot_wider(
-      names_from = rang,
-      values_from = c(candidat, pct),
-      names_sep = "_"
-    )
+    pluck("data") |>
+    map(function(df) {
+      df |>
+      pivot_longer(
+        cols = c(nb_exprim:last_col(), -nb_exprim),
+        names_to = "candidat",
+        values_to = "voix"
+      ) |>
+      mutate(pct = voix / nb_exprim * 100) |>
+      slice_max(by = id_bvote, order_by = pct, n = 2, with_ties = FALSE) |>
+      select(id_bvote, candidat, pct)
+    }) |>
+    bind_rows()
 }
 
-top_2008 <- top2_municipales(2008)
-top_2020 <- top2_municipales(2020)
+top2_muni_parties <- function(select_year) {
+  top2_municipales(select_year) |>
+    inner_join(dico, by = "candidat") |>
+    select(-candidat)
+}
 
-# unique(c(top2_2008$candidat_1, top2_2008$candidat_2))
-# unique(c(top2_2020$candidat_1, top2_2020$candidat_2))
-
-#Dictionnaire politique de 2008
-dico_2008 <- tibble(
-  candidat = c(
-    # Gauche
-    "dagoma seybah", "wieviorka sylvie", "aidenbaum pierre", "bertinotti dominique",
-    "cohen-solal lyne", "bravo jacques", "féraud rémi", "bloche patrick",
-    "blumenthal michèle", "coumet jérôme", "castagnou pierre", "hidalgo anne",
-    "lepetit annick", "vaillant daniel", "madec roger", "calandra frédérique",
-    "lévy romain", "mano jean-yves", "charzat michel",
-
-    # Droite
-    "legaret jean-françois", "lekieffre christophe", "roger vincent", "tiberi jean",
-    "lecoq jean-pierre", "dati rachida", "lebel françois", "lellouche pierre",
-    "burkli delphine", "carrère-gée marie-claire", "goujon philippe", "goasguen claude",
-    "de panafieu françoise", "weill-raynal martine", "tissot claude-annick",
-    "vasseur véronique", "alphand david", "decorte roxane", "giannesini jean-jacques",
-
-    # Centre
-    "girard laurence", "rançon-cavenel heidi", "asmani lynda", "cavada jean-marie",
-    "aziere eric", "de sarnez marielle", "delamare raoul",
-
-    # Ecologiste
-    "boutault jacques", "dubarry véronique", "dutrey rené", "garel sylvain", "baupin denis"
-  ),
-  parti = c(
-    rep("Gauche", 19),
-    rep("Droite", 19),
-    rep("Centre", 7),
-    rep("Ecologiste", 5)
-  )
-)
-
-# mm chose pour 2020
-dico_2020 <- tibble(
-  candidat = c(
-    # Gauche
-    "m. weil ariel", "mme lemardeley marie-christine", "m. ngatcha arnaud", "mme cordebard alexandra",
-    "m. vauglin françois", "m. grégoire emmanuel", "m. coumet jérôme", "mme petit carine",
-    "mme toranian anouch", "mme taïeb karen", "m. lejoindre eric", "m. dagnaud françois",
-    "m. pliez eric", "mme mazetier sandrine", "mme sebbah hanna", "mme marre béatrice",
-    "m. elalouf lucas", "m. dhorasoo vikash", "mme legrain sarah", "mme simonnet danielle",
-
-    # Droite
-    "m. véron aurélien", "mme berthout florence", "m. lecoq jean-pierre", "mme dati rachida",
-    "mme d'hauteserre jeanne", "mme segond sophie", "mme montandon valérie", "mme carrere-gee marie-claire",
-    "m. goujon philippe", "mme evren agnès", "m. szpiner francis", "m. boulard geoffroy",
-    "m. maurin pierre", "m. fort bertil", "mme garnier nelly", "m. olivier jean-baptiste",
-    "m. granier rudolph", "m. didier françois-marie",
-
-    # Centre
-    "m. rupin pacôme", "mme bürkli delphine", "mme ibled catherine", "m. bournazel pierre-yves",
-    "m. gantzer gaspard", "mme hervieu céline", "m. missoffe alexandre", "m. amellal karim",
-    "m. poitoux guillaume", "m. peng chang hua", "m. aziere éric", "mme buzyn agnès",
-    "mme toubiana marie", "m. rouxel olivier", "mme calandra frédérique",
-
-    # Ecologiste
-    "mme rémy-leleu raphaëlle", "m. raifaud sylvain", "m. belliard david", "mme pierre-marie emmanuelle",
-    "mme souyris anne", "mme boux anne-claire", "m. lert dan", "mme guhl antoinette"
-  ),
-  parti = c(
-    rep("Gauche", 20),
-    rep("Droite", 18),
-    rep("Centre", 15),
-    rep("Ecologiste", 8)
-  )
-)
-
-ideologie_muni_2008 <- top_2008 |>
-  left_join(dico_2008, by = c("candidat_1" = "candidat")) |>
-  rename(parti_1 = parti) |>
-  left_join(dico_2008, by = c("candidat_2" = "candidat")) |>
-  rename(parti_2 = parti)
-
-ideologie_muni_2020 <- top_2020 |>
-  left_join(dico_2020, by = c("candidat_1" = "candidat")) |>
-  rename(parti_1 = parti) |>
-  left_join(dico_2020, by = c("candidat_2" = "candidat")) |>
-  rename(parti_2 = parti)
-
-##head(ideologie_muni_2008)
-
-
-top1_2008 <- ideologie_muni_2008 |> select(constituency, num_bureau, parti = parti_1, pct = pct_1)
-top2_2008 <- ideologie_muni_2008 |> select(constituency, num_bureau, parti = parti_2, pct = pct_2)
-
-top1_2020 <- ideologie_muni_2020 |> select(constituency, num_bureau, parti = parti_1, pct = pct_1)
-top2_2020 <- ideologie_muni_2020 |> select(constituency, num_bureau, parti = parti_2, pct = pct_2)
-
-
-cca_2008 <- bind_rows(top1_2008, top2_2008) |>
-  filter(!is.na(parti)) |>
+cca_data <- function(select_year) {
+  top2_muni_parties(select_year) |>
   pivot_wider(
     names_from = parti,
     values_from = pct,
     values_fill = 0,
     values_fn = sum  # pour les doublons
   ) |>
-  rename_with(~ paste0(.x, "_2008"), -c(constituency, num_bureau)) |>
-  arrange(constituency, num_bureau)
+  rename_with(\(x) str_glue("{x}_{select_year}"), -id_bvote)
+}
 
-cca_2020 <- bind_rows(top1_2020, top2_2020) |>
-  filter(!is.na(parti)) |>
-  pivot_wider(
-    names_from = parti,
-    values_from = pct,
-    values_fill = 0,
-    values_fn = sum  # pour les doublons
-  ) |>
-  rename_with(~ paste0(.x, "_2020"), -c(constituency, num_bureau)) |>
-  arrange(constituency, num_bureau)
-
-cca_finale <- inner_join(cca_2008, cca_2020, by = c("constituency", "num_bureau"))
-
+cca_finale <- inner_join(cca_data(2008), cca_data(2020), by = "id_bvote")
 
 X <- cca_finale |> select(ends_with("_2008")) |> as.matrix()
 Y <- cca_finale |> select(ends_with("_2020")) |> as.matrix()
-
-res.cca <- cancor(X, Y)
-
-#print(res.cca$cor)
 
 res_cc <- cc(X, Y)
 plt.var(res_cc, 1, 2, var.label = TRUE)
 
 ```
-
 
 Right_2008 and Right_2020 are basically right on top of each other on the far left, showing stability for the Right. However, while Left_2008 is touching the right edge, Left_2020 has moved closer to the center of the circle. Which means that while the Left is still a major political power, its geographic hold became slightly less significant and more spread out in 2020 than it was in 2008.
 
@@ -526,7 +421,6 @@ to_explain <- elections |>
   pluck("data") |>
   map(function(x) {
     x |>
-    filter(!str_ends(id_bvote, "99")) |> # remove the station for prisoners
     candidates(keep = id_bvote) |>
     top_n(1, start = 2)
   })

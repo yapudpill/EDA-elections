@@ -1,0 +1,73 @@
+```{r}
+#| label: parties
+
+# Political labels for the candidates of the 2008 municipal elections
+dico_2008 <- tibble(
+  candidat = c(
+    # Gauche
+    "dagoma seybah", "wieviorka sylvie", "aidenbaum pierre", "bertinotti dominique",
+    "cohen-solal lyne", "bravo jacques", "féraud rémi", "bloche patrick",
+    "blumenthal michèle", "coumet jérôme", "castagnou pierre", "hidalgo anne",
+    "lepetit annick", "vaillant daniel", "madec roger", "calandra frédérique",
+    "lévy romain", "mano jean-yves", "charzat michel",
+
+    # Droite
+    "legaret jean-françois", "lekieffre christophe", "roger vincent", "tiberi jean",
+    "lecoq jean-pierre", "dati rachida", "lebel françois", "lellouche pierre",
+    "burkli delphine", "carrère-gée marie-claire", "goujon philippe", "goasguen claude",
+    "de panafieu françoise", "weill-raynal martine", "tissot claude-annick",
+    "vasseur véronique", "alphand david", "decorte roxane", "giannesini jean-jacques",
+
+    # Centre
+    "girard laurence", "rançon-cavenel heidi", "asmani lynda", "cavada jean-marie",
+    "aziere eric", "de sarnez marielle", "delamare raoul",
+
+    # Ecologiste
+    "boutault jacques", "dubarry véronique", "dutrey rené", "garel sylvain", "baupin denis"
+  ),
+  parti = c(
+    rep("Gauche", 19),
+    rep("Droite", 19),
+    rep("Centre", 7),
+    rep("Ecologiste", 5)
+  )
+)
+
+# Political labels for the candidates of the 2020 municipal elections
+dico_2020 <- tibble(
+  candidat = c(
+    # Gauche
+    "m. weil ariel", "mme lemardeley marie-christine", "m. ngatcha arnaud", "mme cordebard alexandra",
+    "m. vauglin françois", "m. grégoire emmanuel", "m. coumet jérôme", "mme petit carine",
+    "mme toranian anouch", "mme taïeb karen", "m. lejoindre eric", "m. dagnaud françois",
+    "m. pliez eric", "mme mazetier sandrine", "mme sebbah hanna", "mme marre béatrice",
+    "m. elalouf lucas", "m. dhorasoo vikash", "mme legrain sarah", "mme simonnet danielle",
+
+    # Droite
+    "m. véron aurélien", "mme berthout florence", "m. lecoq jean-pierre", "mme dati rachida",
+    "mme d'hauteserre jeanne", "mme segond sophie", "mme montandon valérie", "mme carrere-gee marie-claire",
+    "m. goujon philippe", "mme evren agnès", "m. szpiner francis", "m. boulard geoffroy",
+    "m. maurin pierre", "m. fort bertil", "mme garnier nelly", "m. olivier jean-baptiste",
+    "m. granier rudolph", "m. didier françois-marie",
+
+    # Centre
+    "m. rupin pacôme", "mme bürkli delphine", "mme ibled catherine", "m. bournazel pierre-yves",
+    "m. gantzer gaspard", "mme hervieu céline", "m. missoffe alexandre", "m. amellal karim",
+    "m. poitoux guillaume", "m. peng chang hua", "m. aziere éric", "mme buzyn agnès",
+    "mme toubiana marie", "m. rouxel olivier", "mme calandra frédérique",
+
+    # Ecologiste
+    "mme rémy-leleu raphaëlle", "m. raifaud sylvain", "m. belliard david", "mme pierre-marie emmanuelle",
+    "mme souyris anne", "mme boux anne-claire", "m. lert dan", "mme guhl antoinette"
+  ),
+  parti = c(
+    rep("Gauche", 20),
+    rep("Droite", 18),
+    rep("Centre", 15),
+    rep("Ecologiste", 8)
+  )
+)
+
+dico <- bind_rows(dico_2008, dico_2020)
+
+```

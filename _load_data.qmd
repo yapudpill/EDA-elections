@@ -40,7 +40,13 @@ standardize <- function(df) {
   df <- df |>
     rename_with(str_to_lower) |>
     rename_with(\(old) coalesce(cols_mapping[old], old)) |>
-    select(!any_of(unused_cols))
+    select(!any_of(unused_cols)) |>
+    filter(
+      # the 2014 european elections have a row with only NAs
+      !is.na(id_bvote),
+      # remove the polling station for prisoners
+      !str_ends(id_bvote, "99")
+    )
 
   if ("nb_blanc" %in% names(df)) {
     df <- df |>
@@ -75,16 +81,6 @@ load_excel <- function(path) standardize(read_excel(path))
 #| label: load
 
 pres_euro <- mutate(pres_euro, data = map(path, load_parquet))
-
-# the 2014 european elections have an absurd row with only NAs and 20000+ voters
-fixed <- pres_euro |>
-  filter(type == "europeennes", year == 2014) |>
-  pluck("data", 1) |>
-  filter(nb_votant < 20000)
-pres_euro <- pres_euro |> rows_update(
-  tibble(type = "europeennes", year = 2014, data = list(fixed)),
-  by = c("type", "year")
-)
 
 # one of the excel file is ill-formatted so this will produce a warning but we can ignore it
 legi_muni <- mutate(legi_muni, data = map(path, load_excel)) |> suppressWarnings()
