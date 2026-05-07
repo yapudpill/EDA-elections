@@ -26,6 +26,15 @@ library(broom)
 | Européennes     | 2014, 2024             |
 | Législatives    | 2007, 2017, 2022, 2024 |
 
+##
+
+```{r}
+#| label: elections-table
+
+elections
+
+```
+
 ## Contenu du data set
 
 ```{r}
