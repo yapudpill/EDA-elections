@@ -498,12 +498,9 @@ summaries |>
   imap(function(reg, name) {
     reg$coefficients[-1, "Estimate"] |>
     enframe(name = "candidate", value = "coefficient") |>
-    mutate(fill = coefficient == max(coefficient)) |>
-    ggplot(aes(x = fct_reorder(format_names(candidate), coefficient, .desc = TRUE), y = coefficient, fill = fill)) +
-    geom_col() +
-    # geom_text(aes(label = round(coefficient, 3)), vjust = -0.5) +
+    ggplot(aes(x = fct_reorder(format_names(candidate), coefficient, .desc = TRUE), y = coefficient)) +
+    geom_col(fill = "steelblue") +
     labs(x = NULL, title = str_glue("Coefficients for {format_names(name)}")) +
-    scale_fill_manual(values = c("lightgrey", "steelblue"), guide = "none") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   }) |>
