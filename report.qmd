@@ -4,6 +4,8 @@ format: html
 ---
 
 {{< include _load_data.qmd >}}
+{{< include _utils.qmd >}}
+{{< include _parties.qmd >}}
 
 ```{r}
 #| label: report-libraries
@@ -42,8 +44,6 @@ The following example shows a sample of the data for the first round of the 2017
 ```{r}
 #| label: sample
 
-format_names <- function(name) name |> str_replace_all("_", " ") |> str_to_title()
-
 elections |>
   filter(type == "presidentielles", year == 2017, round == 1) |>
   pluck("data", 1) |>
@@ -66,20 +66,6 @@ Since elections tend to have quite a lot of candidates obtaining only a few vote
 
 ```{r}
 #| label: pca
-
-candidates <- function(df, keep = NULL) {
-  n <- names(df)
-  i2 <- length(n) - if ("geo_shape" %in% n) 2 else 0
-  df |>
-    select({{keep}}, all_of(16:i2)) |>
-    select(where(\(col) !all(col == 0)))
-}
-
-top_n <- function(df, n, start = 1) {
-  sums <- df |> select(all_of(start:last_col())) |> map_int(sum) |> sort(decreasing = TRUE)
-  top <- names(sums[1:n]) |> discard(is.na)
-  select(df, seq_len(start - 1), all_of(top))
-}
 
 pcomps <- elections |>
   mutate(
@@ -116,7 +102,7 @@ We first inspect the scree plots to check whether a two-dimensional representati
 #| label: pca-pres-screeplot
 
 pcomps.pres |>
-  pmap(function(pco, title, ...) fviz_screeplot(pco, addlabels = TRUE, main = title)) |>
+  pmap(\(pco, title, ...) fviz_screeplot(pco, addlabels = TRUE, main = title)) |>
   wrap_plots(axes = "collect")
 
 ```
@@ -131,7 +117,7 @@ In every PCA, the first two principal axes explain at least 75% of the total var
 
 
 pcomps.pres |>
-  pmap(function(pco, title, ...) fviz_pca_var(pco, col.var = "royalblue", repel = TRUE, title = title)) |>
+  pmap(\(pco, title, ...) fviz_pca_var(pco, col.var = "royalblue", repel = TRUE, title = title)) |>
   walk(print)
 
 ```
@@ -186,7 +172,7 @@ We use the same approach to analyze the two most recent European elections. Once
 #| label: pca-euro-screeplot
 
 pcomps.euro |>
-  pmap(function(pco, title, ...) fviz_screeplot(pco, addlabels = TRUE, main = title)) |>
+  pmap(\(pco, title, ...) fviz_screeplot(pco, addlabels = TRUE, main = title)) |>
   wrap_plots(axes = "collect")
 
 ```
@@ -228,8 +214,6 @@ pcomps.euro |>
 # Using Canonical Correlation Analysis (CCA)
 
 This time we will focus on the municipal elections of 2008 and 2020. We will extract the top 2 candidates of each polling station for both elections, assign them a political label (Left, Right, Center, Ecologist) and then run a CCA to analyze the correlation between the two elections. The goal is to see how the political landscape of Paris evolved between 2008 and 2020, and whether the results of a political bloc in 2008 are indeed correlated with the results of the same bloc in 2020.
-
-{{< include _parties.qmd >}}
 
 ```{r}
 #| label: cca
@@ -292,15 +276,6 @@ Both Ecologiste_2008 and Ecologiste_2020 are positioned on the right side of the
 ```{r}
 #| label: clustering-functions
 
-collect_election <- function(type, year, round) {
-  elections |>
-    filter(type == .env$type, year == .env$year, round == .env$round) |>
-    pluck("data") |>
-    bind_rows() |>
-    filter(!str_ends(id_bvote, "99")) |> # remove the station for prisoners
-    mutate(across(where(is.numeric), \(x) replace_na(x, 0)))
-}
-
 legi_data <- function(select_year) {
   collect_election("legislatives", select_year, 1) |>
   rowwise() |>
@@ -358,8 +333,8 @@ cluster_analysis <- function(df) {
     ) +
     theme_void()
 
-  print(map)
   print(scatter)
+  print(map)
 }
 
 ```
