@@ -55,7 +55,7 @@ elections |>
 
 ```
 
-At first glance, the most popular candidates among Parisians were Emmanuel Macron, Jean-Luc Mélenchon, and François Fillon.
+At first glance, the most popular candidates among Parisians were *Emmanuel Macron*, *Jean-Luc Mélenchon*, and *François Fillon*.
 
 
 # Using Principal Component Analysis (PCA)
@@ -378,7 +378,7 @@ cluster_analysis(legi_data(2017))
 
 ```
 
-* **Cluster 1 (Red) The "Macron Wave" Strongholds:** On the scatter plot, this group is distinguished by massive leads (Gap > 20%) and low blank votes. However, on the 2017 map, this cluster overwhelmingly dominates the center and heart of Paris. This illustrates the landslide victory of "La République En Marche" (LREM) following Emmanuel Macron's election. His candidates won monolithic victories in quite a lot of districts, surpassing the Left/Right divide in the capital's center.
+* **Cluster 1 (Red) The "Macron Wave" Strongholds:** On the scatter plot, this group is distinguished by massive leads (Gap > 20%) and low blank votes. However, on the 2017 map, this cluster overwhelmingly dominates the center and heart of Paris. This illustrates the landslide victory of "La République En Marche" (LREM) following *Emmanuel Macron*'s election. His candidates won monolithic victories in quite a lot of districts, surpassing the Left/Right divide in the capital's center.
 
 * **Cluster 2 (Green) Peripheral Uncertainty Zones:** Identified by high blank and null votes (above 1.5%), this cluster is found primarily on the northern, eastern, and southern fringes of Paris. In the 2017 context, following the decline of traditional parties (PS and LR), a portion of the electorate felt left without a strong local political alternative and chose blank voting to express their uncertainty.
 
@@ -398,11 +398,11 @@ cluster_analysis(legi_data(2024))
 
 ```
 
-* **Cluster 1 (Red) The Monolithic Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 50%) and a low rate of blank votes. Geographically, this cluster dominates the 5th, 8th, 10th, 11th and 16th arrondissements. These are mostly neighborhoods with tight results in 2017 (blue cluster) that have returned to their traditional political allegiances in 2024 after the dissolution of the National Assembly by President Macron.
+* **Cluster 1 (Red) The Monolithic Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 50%) and a low rate of blank votes. Geographically, this cluster dominates the 5th, 8th, 10th, 11th and 16th arrondissements. These are mostly neighborhoods with tight results in 2017 (blue cluster) that have returned to their traditional political allegiances in 2024 after the dissolution of the National Assembly by President *Macron*.
 
 * **Cluster 2 (Green) Uncertain Areas:** This cluster is primarily isolated by its high y-axis values (Blank & Null votes above 1.5%), regardless of the gap. As in 2017, these stations are mostly scattered on the outer edges of the capital, but they are more numerous and tend to spread inwards. This highlights specific areas where a significant portion of the electorate felt unrepresented by the local candidate offerings, choosing instead to cast a blank ballot to express dissatisfaction with the current political instability.
 
-* **Cluster 3 (Blue) The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a massive central and center-western portion of Paris. These areas represent the political battlegrounds of the capital. It is interesting to note that these parts of Paris were previously the ones with not much competition. This new dynamic is likely due to people turning away from Macrons's party after he dissolved the national assembly which is a very unpopular move in France.
+* **Cluster 3 (Blue) The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a massive central and center-western portion of Paris. These areas represent the political battlegrounds of the capital. It is interesting to note that these parts of Paris were previously the ones with not much competition. This new dynamic is likely due to people turning away from *Macron*'s party after he dissolved the national assembly which is a very unpopular move in France.
 
 ### 2017 vs 2024
 
@@ -499,7 +499,7 @@ summaries |>
     reg$coefficients[-1, "Estimate"] |>
     enframe(name = "candidate", value = "coefficient") |>
     mutate(fill = coefficient == max(coefficient)) |>
-    ggplot(aes(x = format_names(candidate), y = coefficient, fill = fill)) +
+    ggplot(aes(x = fct_reorder(format_names(candidate), coefficient, .desc = TRUE), y = coefficient, fill = fill)) +
     geom_col() +
     # geom_text(aes(label = round(coefficient, 3)), vjust = -0.5) +
     labs(x = NULL, title = str_glue("Coefficients for {format_names(name)}")) +
