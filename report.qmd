@@ -33,7 +33,7 @@ This project analyzes electoral results in Paris since 2007, the first year cove
 | Legislative   | 2007, 2017, 2022, 2024 |
 | Municipal     | 2008, 2020             |
 
-These elections span the whole 2007-2022 period, which makes it possible to observe how voting patterns evolve over time. We also include every election from 2017 onward because the assignment requires it for the linear regression used to explain the 2024 legislative election.
+These elections span the whole 2007-2024 period, which makes it possible to observe how voting patterns evolve over time. We also include every election from 2017 onward because the assignment requires it for the linear regression used to explain the 2024 legislative election.
 
 For each election, we work with a table in which each row corresponds to a polling station. The first 15 columns contain information about the election and the station itself, such as its location, the number of registered voters, and the number of cast ballots. The remaining columns correspond to the candidates and record the number of votes each one received at that polling station.
 
@@ -62,7 +62,7 @@ At first glance, the most popular candidates among Parisians were Emmanuel Macro
 
 In this section, we will perform PCA on the columns containing the results of the candidates for multiple elections and showcase some characteristics of the Parisian political landscape.
 
-Since elections tend to have quite a lot of candidates obtaining only few votes, we focused our analysis on the 6 best scoring candidates of each election. We also ignore second rounds because having only two variables is not a very informative setup for PCA.
+Since elections tend to have quite a lot of candidates obtaining only a few votes, we focused our analysis on the 6 best-scoring candidates of each election. We also ignore second rounds because having only two variables is not a very informative setup for PCA.
 
 ```{r}
 #| label: pca
@@ -98,7 +98,7 @@ pcomps.pres <- filter(pcomps, type == "presidentielles", round == 1)
 
 ```
 
-Let us start by the most well known election: the presidential election. For these elections, the top performing candidates are as follow:
+Let us start with the most well-known election: the presidential election. For these elections, the top performing candidates are as follows:
 
 ```{r}
 #| label: top-pres
@@ -217,17 +217,17 @@ pcomps.euro |>
 #### 2014
 * **PC1 (the left-right spectrum):** The main horizontal axis, which explains 55.5% of the variance, cleanly separates the traditional political families. On one side of the graph is the conservative right (*Alain Lamassoure*); on the other, a more dispersed left bloc (*Patrick Le Hyaric*, *Pascal Durand*, *Pervenche Berès*).
 
-* In 2014, Paris was still voting within traditional multi-party system. No single candidate clearly dominated, and no major bloc had yet merged with another's sociological base.
+* In 2014, Paris was still voting within a traditional multi-party system. No single candidate clearly dominated, and no major bloc had yet merged with another's sociological base.
 
 #### 2024
 * **Left-right shift:** The graph's orientation has flipped, which is perfectly normal in PCA, but the divide is still there. The left bloc (*Aubry*, *Toussaint*, *Glucksmann*) now appears on the left side, while the right/center bloc (*Bellamy*, *Hayer*, *Bardella*) is on the right.
 * **The Glucksmann/Toussaint convergence:** *Raphaël Glucksmann* (center-left) and *Marie Toussaint* (Greens) are roughly aligned, pointing to the same sociological space in the lower-left quadrant. In Paris, the moderate left and the ecologist electorate became quite similar in 2024, which is the strongest signal in this chart.
-* **A double polarization:** The second axis an extremes/moderates divide. On the upper half of the graph, we find the extremes (*Jordan Bardella* on the far right and *Manon Aubry* on the far left), while the more moderate candidates (*Nicolas Hayer* and *Raphaël Glucksmann*) are in the lower half. This suggests that in 2024, the political landscape was not only structured by the traditional left-right divide, but also by a divide between moderate and more extreme candidates.
+* **A double polarization:** The second axis is an extremes/moderates divide. On the upper half of the graph, we find the extremes (*Jordan Bardella* on the far right and *Manon Aubry* on the far left), while the more moderate candidates (*Nicolas Hayer* and *Raphaël Glucksmann*) are in the lower half. This suggests that in 2024, the political landscape was not only structured by the traditional left-right divide, but also by a divide between moderate and more extreme candidates.
 
 
 # Using Canonical Correlation Analysis (CCA)
 
-This time we will focus on the municipal elections of 2008 and 2020. We will extract the top 2 candidates of each polling station for both elections, assign them a political label (Left, Right, Center, Ecologist) and then run a CCA to analyze the correlation between the two elections. The goal is to see how the political landscape of Paris evolved between 2008 and 2020, and whether the results of a political bloc in 2008 is indeed correlated with the results of the same bloc in 2020.
+This time we will focus on the municipal elections of 2008 and 2020. We will extract the top 2 candidates of each polling station for both elections, assign them a political label (Left, Right, Center, Ecologist) and then run a CCA to analyze the correlation between the two elections. The goal is to see how the political landscape of Paris evolved between 2008 and 2020, and whether the results of a political bloc in 2008 are indeed correlated with the results of the same bloc in 2020.
 
 {{< include _parties.qmd >}}
 
@@ -279,11 +279,11 @@ plt.var(res_cc, 1, 2, var.label = TRUE)
 
 ```
 
-Right_2008 and Right_2020 are basically right on top of each other on the far left, showing stability for the Right. However, while Left_2008 is touching the right edge, Left_2020 has moved closer to the center of the circle. Which means that while the Left is still a major political power, its geographic hold became slightly less significant and more spread out in 2020 than it was in 2008.
+Right_2008 and Right_2020 are basically right on top of each other on the far left, showing stability for the Right. However, while Left_2008 is touching the right edge, Left_2020 has moved closer to the center of the circle. This means that while the Left is still a major political power, its geographic hold became slightly less significant and more spread out in 2020 than it was in 2008.
 
 While the Left/Right axis remained frozen, the "Center" experienced a total geographic shift. Centre_2008 points upwards, whereas Centre_2020 points downwards. This opposition proves that the 2020 centrist electorate was built in completely different neighborhoods compared to the 2008 centrist base. The label remained, but the voters changed.
 
-Both Ecologiste_2008 and Ecologiste_2020 are positioned on the right side of the chart, sharing a close angle with the Left block. This confirms a persistent geographic correlation between Green voters and Left-wing voters, sharing very similar electoral zones.
+Both Ecologiste_2008 and Ecologiste_2020 are positioned on the right side of the chart, sharing a close angle with the Left bloc. This confirms a persistent geographic correlation between Green voters and Left-wing voters, sharing very similar electoral zones.
 
 # Clustering
 
@@ -380,7 +380,7 @@ cluster_analysis(legi_data(2017))
 
 * **Cluster 1 (Red) The "Macron Wave" Strongholds:** On the scatter plot, this group is distinguished by massive leads (Gap > 20%) and low blank votes. However, on the 2017 map, this cluster overwhelmingly dominates the center and heart of Paris. This illustrates the landslide victory of "La République En Marche" (LREM) following Emmanuel Macron's election. His candidates won monolithic victories in quite a lot of districts, surpassing the Left/Right divide in the capital's center.
 
-* **Cluster 2 (Green) Peripheral Uncertainty Zones:** Identified by high blank and null votes (above 1.5%), this cluster is found primarily on the northern, eastern, and southern fringes of Paris. In the 2017 context, following the recessing of traditional parties (PS and LR), a portion of the electorate in felt left without a strong local political alternative and chose blank voting to express their uncertainty.
+* **Cluster 2 (Green) Peripheral Uncertainty Zones:** Identified by high blank and null votes (above 1.5%), this cluster is found primarily on the northern, eastern, and southern fringes of Paris. In the 2017 context, following the decline of traditional parties (PS and LR), a portion of the electorate felt left without a strong local political alternative and chose blank voting to express their uncertainty.
 
 * **Cluster 3 (Blue) Pockets of Resistance (Battlegrounds):** Characterized by very tight races (low Gap, under 18%), this cluster was pushed to the geographical extremities of the capital: the far West (16th arrondissement) and fragments of the East. In 2017, these were the only areas where real competition persisted. They represent the final bastions of traditional parties (the historic Right in the West, the Left in the East) fighting fiercely against macronist candidates.
 
@@ -398,11 +398,11 @@ cluster_analysis(legi_data(2024))
 
 ```
 
-* **Cluster 1 (Red) The Monolithic Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 50%) and a low rate of blank votes. Geographically, this cluster dominates the 5th, 8th, 10th, 11th and 16th arrondissements. These are mostly neighborhoods with tight results in 2017 (blue cluster) that have returned to their traditional political allegiances in 2024 after the dissolution of the national assembly by president Macron.
+* **Cluster 1 (Red) The Monolithic Strongholds:** Characterized by a comfortable lead for the winning candidate (Gap between 20% and 50%) and a low rate of blank votes. Geographically, this cluster dominates the 5th, 8th, 10th, 11th and 16th arrondissements. These are mostly neighborhoods with tight results in 2017 (blue cluster) that have returned to their traditional political allegiances in 2024 after the dissolution of the National Assembly by President Macron.
 
-* **Cluster 2 (Green) Uncertain Areas:** This cluster is primarily isolated by its high y-axis values (Blank & Null votes above 1.5%), regardless of the gap. As in 2017, these stations are mostly scattered on the outer edges of the capital, but they are more numerous and tend to spread inwards. This highlights specific areas where a significant portion of the electorate felt unrepresented by the local candidate offerings, choosing instead to cast a blank ballot to express dissatisfaction of the current political instability.
+* **Cluster 2 (Green) Uncertain Areas:** This cluster is primarily isolated by its high y-axis values (Blank & Null votes above 1.5%), regardless of the gap. As in 2017, these stations are mostly scattered on the outer edges of the capital, but they are more numerous and tend to spread inwards. This highlights specific areas where a significant portion of the electorate felt unrepresented by the local candidate offerings, choosing instead to cast a blank ballot to express dissatisfaction with the current political instability.
 
-* **Cluster 3 (Blue) The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a massive central and center-western portion of Paris. These areas represent the political battlegrounds of the capital. It is interesting to note that these parts of Paris where previously the ones with not much competition. This new dynamic is likely due to people turning back from Macons's party after he dissolved the national assembly which is a very unpopular move in France.
+* **Cluster 3 (Blue) The Battlegrounds:** Located in the lower-left quadrant of the scatter plot, these stations are defined by a tight race (Gap mostly under 20%) and low blank votes. On the map, they cover a massive central and center-western portion of Paris. These areas represent the political battlegrounds of the capital. It is interesting to note that these parts of Paris were previously the ones with not much competition. This new dynamic is likely due to people turning away from Macrons's party after he dissolved the national assembly which is a very unpopular move in France.
 
 ### 2017 vs 2024
 
@@ -485,7 +485,7 @@ summaries |>
 
 The results show that for most candidates, the previous european election (2024) is the best explanatory variable, which is not very surprising since it is the most recent election. However, for some candidates, other elections are better predictors of their 2024 performance. For example, the 2022 presidential election is a better predictor for the first and last candidate. This could be due to the fact that these candidates were already present previously and have maintained an electorate since then.
 
-Let us now have a closer look to the regression done using the 2024 european election as explanatory variable, since it is the best predictor for most candidates. The following graph summarizes the coefficients of these regressions for each candidate:
+Let us now have a closer look at the regression done using the 2024 European election as an explanatory variable, since it is the best predictor for most candidates. The following graph summarizes the coefficients of these regressions for each candidate:
 
 ```{r}
 #| label: lin-reg-coef
