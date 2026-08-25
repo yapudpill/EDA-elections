@@ -1,7 +1,6 @@
 # our stuff
 .vscode
 DATA
-_outdir
 
 # rstudio stuff
 .Rproj.user
@@ -12,3 +11,4 @@ _outdir
 # quarto stuff
 /.quarto/
 **/*.quarto_ipynb
+_site

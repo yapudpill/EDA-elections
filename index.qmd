@@ -1,6 +1,15 @@
 ---
 title: Elections in Paris under the prism of SVD
-format: html
+author:
+  - Anthony Fernandes
+  - Steven Lahoud
+title-block-banner: true
+toc: true
+lightbox: true
+code-line-numbers: true
+execute:
+  warning: false
+  echo: false
 ---
 
 {{< include _load_data.qmd >}}
@@ -484,3 +493,14 @@ summaries |>
 ```
 
 The coefficients show that for most candidates, the most important explanatory variable is the result of the candidate with the same political affiliation in the 2024 european election. For example, for *Sandrine Rousseau* (ninth candidate), the coefficient of the *Lorys Elmayan* variable is much higher than the others, which suggests that *Rousseau's* performance in the 2024 legislative election is strongly correlated with the performance of *Elmayan* in the 2024 european election. This is consistent with the fact that both candidates are from the same political family (ecologists) and therefore likely share a similar electorate.
+
+# Code listing {.appendix}
+
+```{r}
+#| label: listing
+#| echo: true
+#| eval: false
+#| code-fold: true
+#| code-summary: "All code used in this report (very long)"
+#| ref-label: !expr knitr::all_labels()
+```
