@@ -1,5 +1,33 @@
-```{r}
-#| label: parties
+# Utility functions
+
+format_names <- function(name) {
+  name |>
+    str_replace_all("_", " ") |>
+    str_to_title()
+}
+
+candidates <- function(df, keep = NULL) {
+  n <- names(df)
+  i2 <- length(n) - if ("geo_shape" %in% n) 2 else 0
+  df |>
+    select({{keep}}, all_of(16:i2)) |>
+    select(where(\(col) !all(col == 0)))
+}
+
+top_n <- function(df, n, start = 1) {
+  sums <- df |> select(all_of(start:last_col())) |> map_int(sum) |> sort(decreasing = TRUE)
+  top <- names(sums[1:n]) |> discard(is.na)
+  select(df, seq_len(start - 1), all_of(top))
+}
+
+collect_election <- function(type, year, round) {
+  elections |>
+    filter(type == .env$type, year == .env$year, round == .env$round) |>
+    pluck("data") |>
+    bind_rows() |>
+    filter(!str_ends(id_bvote, "99")) |> # remove the station for prisoners
+    mutate(across(where(is.numeric), \(x) replace_na(x, 0)))
+}
 
 # Political labels for the candidates of the 2008 municipal elections
 dico_2008 <- tibble(
@@ -68,6 +96,5 @@ dico_2020 <- tibble(
   )
 )
 
+# Merge the two dictionaries
 dico <- bind_rows(dico_2008, dico_2020)
-
-```

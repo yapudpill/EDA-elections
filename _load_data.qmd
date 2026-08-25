@@ -85,7 +85,7 @@ pres_euro <- mutate(pres_euro, data = map(path, load_parquet))
 # one of the excel file is ill-formatted so this will produce a warning but we can ignore it
 legi_muni <- mutate(legi_muni, data = map(path, load_excel)) |> suppressWarnings()
 
-# group all the election in a data frame and clear variables
+# group all the election in a data frame
 elections <- bind_rows(
   pres_euro |> select(!c(dataset, path)),
   legi_muni |> select(!c(dataset, path, attachement))
@@ -96,6 +96,7 @@ elections <- bind_rows(
 ```{r}
 #| label: load-clean
 
+# clear temporary variables
 rm(unused_cols, cols_mapping, standardize, load_parquet, load_excel, fixed, pres_euro, legi_muni)
 
 ```

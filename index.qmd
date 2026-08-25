@@ -13,12 +13,17 @@ execute:
 ---
 
 {{< include _load_data.qmd >}}
-{{< include _utils.qmd >}}
-{{< include _parties.qmd >}}
+
+```{r}
+#| label: utilities
+#| file: utils.R
+
+```
 
 ```{r}
 #| label: report-libraries
 
+# libraries used in the report
 library(FactoMineR)
 library(factoextra)
 library(patchwork)
@@ -123,7 +128,6 @@ In every PCA, the first two principal axes explain at least 75% of the total var
 #| lightbox:
 #|  group: pca-pres-var
 #| layout-ncol: 3
-
 
 pcomps.pres |>
   pmap(\(pco, title, ...) fviz_pca_var(pco, col.var = "royalblue", repel = TRUE, title = title)) |>
